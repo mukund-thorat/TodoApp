@@ -15,11 +15,11 @@ from starlette import status
 from backend.database.crud import add_new_user, get_user_by_email
 from backend.database.schemas import UserSchema
 from backend.routers.auth.model import UserCredentials
+from backend.utils.const import REFRESH_TOKEN_EXPIRATION_DAYS
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-REFRESH_TOKEN_EXPIRATION_DAYS = 7
 
 async def create_user(email: EmailStr, password: str, db: AsyncIOMotorDatabase):
     user_schema = UserSchema(

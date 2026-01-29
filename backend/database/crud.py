@@ -6,6 +6,7 @@ from pymongo.errors import PyMongoError
 
 from .schemas import UserSchema
 from ..database.schemas import TodoSchema
+from ..utils.sv_logger import sv_logger
 
 TODO_COLL = "todos"
 USER_COLL = "users"
@@ -15,7 +16,7 @@ async def create_todo(todo: TodoSchema, db: AsyncIOMotorDatabase):
         await db.get_collection(TODO_COLL).insert_one(todo.model_dump())
         return True
     except PyMongoError as pe:
-        print(f"Error at Inserting Todo:\n{pe}")
+        sv_logger.error(f"Error while inserting into DB: {pe}")
         return False
 
 async def get_todos(limit: int, sort_by: tuple[str, int], db: AsyncIOMotorDatabase) -> list[TodoSchema]:
