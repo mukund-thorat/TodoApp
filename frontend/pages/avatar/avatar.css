@@ -1,0 +1,34 @@
+body{
+    width: 100vw;    
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-hero);
+}
+
+.avatars .row{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-large);
+}
+
+img{
+    border-radius: 50%;
+    border: 6px solid black;
+    width: 200px;
+}
+
+.avatars img:hover {
+    transform: scale(1.1);
+    transition: 50ms ease-in-out;
+}
+
+.avatars img.selected {
+    border: 10px solid var(--quaternary-color);
+    box-shadow: 0 0 15px rgba(0, 0 , 0, 0.3);
+    transition: 0.5ms ease-in;
+
+}

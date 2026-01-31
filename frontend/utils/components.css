@@ -1,0 +1,69 @@
+@import "../utils/var.css";
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--primary-font);
+}
+
+body{
+    background-color: var(--primary-color);
+}
+
+.hero-primary-btn{
+    font-weight: bold;
+    background-color: var(--secondary-color);
+    color: black;
+    font-size: var(--font-size-large);
+    border-radius: 50px;
+    padding: 28px;
+    width: 350px;
+    border: 4px solid black;
+}
+
+.hero-secondary-btn{
+    font-weight: bold;
+    background-color: transparent;
+    color: black;
+    font-size: var(--font-size-large);
+    border-radius: 50px;
+    padding: 28px;
+    width: 350px;
+    border: 4px solid black;
+}
+
+.primary-btn{
+    font-weight: 700;
+    background-color: var(--secondary-color);
+    color: var(--quaternary-color);
+    font-size: 20px;
+    border-radius: 50px;
+    padding: var(--spacing-small);
+    width: 200px;
+    border: 3.5px solid var(--quaternary-color);
+}
+
+.secondary-btn{
+    font-weight: 700;
+    background-color: transparent;
+    color: var(--quaternary-color);
+    font-size: 20px;
+    border-radius: 50px;
+    padding: var(--spacing-small);
+    width: 200px;
+    border: 3.5px solid var(--quaternary-color);
+}
+
+.shadow-box{
+    min-width: 400px;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: var(--spacing-large);
+    background-color: #F6F1EF;
+    border: 4px solid var(--quaternary-color);
+    border-radius: 50px;
+    padding: var(--spacing-large);
+    box-shadow: 16px 16px 0px rgba(0, 0, 0, 0.5);
+}

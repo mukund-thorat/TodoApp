@@ -41,7 +41,7 @@ async def add_new_user(user_schema: UserSchema, db: AsyncIOMotorDatabase):
     try:
         await db.get_collection(USER_COLL).insert_one(user_schema.model_dump())
     except PyMongoError as pe:
-        print(f"Error at Inserting User:\n{pe}")
+        sv_logger.error(f"Error while inserting into DB: {pe}")
 
 async def get_user_by_email(email: EmailStr, db: AsyncIOMotorDatabase) -> UserSchema | None:
     user = await db.get_collection(USER_COLL).find_one({"email": email})
@@ -63,6 +63,12 @@ async def update_refresh_token(email: EmailStr, new_refresh_token: str, db: Asyn
 
 async def get_user_by_refresh_token(refresh_token: str, db: AsyncIOMotorDatabase) -> UserSchema | None:
     user = await db.get_collection(USER_COLL).find_one({"refreshToken": refresh_token})
+    if user:
+        return UserSchema(**user)
+    return None
+
+async def get_user_by_rt_and_user_id(user_id: str, refresh_token: str, db: AsyncIOMotorDatabase) -> UserSchema | None:
+    user = await db.get_collection(USER_COLL).find_one({"refreshToken": refresh_token, "userId": user_id})
     if user:
         return UserSchema(**user)
     return None

@@ -1,8 +1,8 @@
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.params import Depends
+from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi.params import Depends, Cookie
 from fastapi.security import OAuth2PasswordRequestForm
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from starlette.status import HTTP_201_CREATED, HTTP_406_NOT_ACCEPTABLE, HTTP_202_ACCEPTED, HTTP_401_UNAUTHORIZED, \
@@ -10,26 +10,18 @@ from starlette.status import HTTP_201_CREATED, HTTP_406_NOT_ACCEPTABLE, HTTP_202
 
 from backend.database.core import get_db
 from backend.database.crud import get_user_by_refresh_token, update_refresh_token
-from backend.routers.auth.model import UserCredentials
-from backend.routers.auth.service import create_user, authenticate_user, create_access_token, get_current_user, \
+from backend.routers.auth.model import UserCredentials, SignUpModel, OTPVerificationModel
+from backend.routers.auth.otp_manager import OTPManager
+from backend.routers.auth.service import authenticate_user, create_access_token, get_current_user, \
     create_refresh_token
 from backend.utils.const import ACCESS_TOKEN_EXPIRE_MINUTES, RATE_LIMIT
 from backend.utils.rate_limiting import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/signup", status_code=HTTP_201_CREATED)
-@limiter.limit(f"{RATE_LIMIT}/minute")
-async def signup(request: Request, credentials: UserCredentials, db: AsyncIOMotorDatabase = Depends(get_db)):
-    if credentials.email is None or credentials.password is None:
-        raise HTTPException(status_code=HTTP_406_NOT_ACCEPTABLE, detail="Email or password is required")
-
-    await create_user(email=credentials.email, password=credentials.password, db=db)
-    return {"status_code": HTTP_201_CREATED, "message": "User created successfully!"}
-
 @router.post("/login", status_code=HTTP_202_ACCEPTED)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def login(request: Request, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: AsyncIOMotorDatabase = Depends(get_db)):
+async def login(request: Request, response: Response, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: AsyncIOMotorDatabase = Depends(get_db)):
     if form_data.username is None or form_data.password is None:
         raise HTTPException(status_code=HTTP_406_NOT_ACCEPTABLE, detail="Email or password is required")
 
@@ -39,15 +31,30 @@ async def login(request: Request, form_data: Annotated[OAuth2PasswordRequestForm
     if not user:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Authentication Failed!")
 
+    refresh_token = create_refresh_token(user_id=user.userId)
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,  # True in production (HTTPS)
+        samesite="strict",
+        max_age=7 * 24 * 60 * 60 # 7 days
+    )
+
+    await update_refresh_token(email=user.email, new_refresh_token=refresh_token, db=db)
+
     return {
         "access_token": create_access_token(email=user.email, user_id=user.userId, delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)),
-        "refresh_token": create_refresh_token(user_id=user.userId),
         "token_type": "bearer"
     }
 
 @router.get("/refresh")
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def token_refresher(request: Request, refresh_token: str, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def token_refresher(request: Request, response: Response, refresh_token: str = Cookie(None), db: AsyncIOMotorDatabase = Depends(get_db)):
+    if not refresh_token:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
+
     user = await get_user_by_refresh_token(refresh_token=refresh_token, db=db)
 
     if user is None:
@@ -58,9 +65,17 @@ async def token_refresher(request: Request, refresh_token: str, db: AsyncIOMotor
 
     await update_refresh_token(email=user['email'], new_refresh_token=new_refresh_token, db=db)
 
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=7 * 24 * 60 * 60
+    )
+
     return {
         "access_token": access_token,
-        "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
 
@@ -70,3 +85,16 @@ async def get_me(request: Request, user: dict = Depends(get_current_user)):
     if user is None:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Authentication Failed!")
     return user
+
+@router.post("/otp/request", status_code=HTTP_201_CREATED)
+@limiter.limit(f"{RATE_LIMIT}/minute")
+async def otp_request(request: Request, signup_model: SignUpModel):
+    otp_manager = OTPManager()
+    is_send = otp_manager.send_otp(signup_model)
+    return {"msg": 'successfully sent OTP to {}'.format(signup_model.email), 'status': 'SUCCESS'} if is_send else {"msg": 'failed to send OTP to {}'.format(signup_model.email), 'status': 'FAILED'}
+
+@router.post("/otp/verify_otp")
+@limiter.limit(f"{RATE_LIMIT}/minute")
+async def otp_verifier(request: Request, otp_payload: OTPVerificationModel, db: AsyncIOMotorDatabase = Depends(get_db)):
+    otp_manager = OTPManager()
+    return await otp_manager.verify_otp(otp_payload.email, otp_payload.otp, db)

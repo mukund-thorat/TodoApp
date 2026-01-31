@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo by Mukund - OTP Verification</title>
+    <link rel="stylesheet" href="/static/utils/components.css">
+    <link rel="stylesheet" href="/static/pages/otp/otp.css">
+    <script src="/static/pages/otp/otp.js" defer></script>
+    <script src="/static/pages/otp/inputs.js" defer></script>
+    <script src="/static/pages/otp/otp_verification.js" defer></script>
+</head>
+
+<body>
+    <div class="shadow-box">
+        <div class="head">
+            <h1>Verify OTP</h1>
+            <p id="otp-info">Sending OTP to your email id...</p>
+        </div>
+        <form id="otp-form">
+            <div class="otp-container">
+                <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+                <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+                <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+                <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+                <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+                <input type="text" maxlength="1" class="otp-input" pattern="[0-9]" inputmode="numeric" required>
+            </div>
+            
+            <div class="bottom">
+                <button type="submit" class="primary-btn">Verify Email</button>
+        
+                <div class="text-center">
+                    <span class="text-secondary">Didn't receive code?</span>
+                    <a href="#" class="link-primary" id="resend-link">Resend</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</body>
+
+</html>

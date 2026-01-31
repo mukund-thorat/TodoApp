@@ -1,0 +1,23 @@
+:root{
+    /* Color Palette */
+    --primary-color: #ECE4DF;
+    --secondary-color: #E2B99C;
+    --tertiary-color: #CB824D;
+    --quaternary-color: #774522;
+
+    /* Font Sizes */
+    --font-size-hero: 2rem;
+    --font-size-large: 1.5rem;
+    --font-size-medium: 1rem;
+    --font-size-small: 0.75rem;
+
+    /* Spacing */
+    --spacing-hero: 4rem;
+    --spacing-large: 2rem;
+    --spacing-medium: 1.5rem;
+    --spacing-small: 0.75rem;
+    --spacing-xsmall: 0.5rem;
+
+    /* Font Family */
+    --primary-font: 'Poppins', sans-serif;
+}

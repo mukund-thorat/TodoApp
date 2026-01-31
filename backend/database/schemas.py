@@ -13,9 +13,10 @@ class TodoSchema(BaseModel):
     dueDate: datetime
     createdAt: datetime
 
-
 class UserSchema(BaseModel):
     userId: str
+    firstName: str
+    lastName: str
     email: EmailStr
     passwordHash: str
     refreshToken: Optional[str]

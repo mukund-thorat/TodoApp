@@ -1,0 +1,42 @@
+label{
+    font-size: var(--font-size-medium);
+    color: var(--tertiary-color);
+    font-weight: 600;
+}
+h1{
+    color: var(--quaternary-color);
+}
+body{
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shadow-box .fields{
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-small);
+}
+.shadow-box .fields .fullname{
+    display: flex;
+    gap: var(--spacing-medium);
+    align-items: center;
+}
+
+.shadow-box .fields .field{
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xsmall);
+}
+
+.shadow-box .fields .field input{
+    font-size: var(--font-size-medium);
+    font-weight: 500;
+    width: 100%;
+    background-color: transparent;
+    padding: var(--spacing-small);
+    border: 3px solid var(--quaternary-color);
+    border-radius: 9px;
+}

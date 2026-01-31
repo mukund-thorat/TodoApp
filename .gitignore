@@ -5,3 +5,7 @@
 /backend/routers/__pycache__
 /backend/routers/todos/__pycache__
 /.venv/
+/backend/routers/auth/__pycache__
+/backend/routers/web/__pycache__
+/backend/utils/__pycache__
+__pycache__/
