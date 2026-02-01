@@ -1,4 +1,4 @@
-body{
+#main-container{
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -113,7 +113,7 @@ body{
     flex-direction: column;
     align-items: center;
     justify-content: start;
-    gap: var(--spacing-medium);
+    gap: var(--spacing-small);
 }
 
 #todo-item{
@@ -144,4 +144,160 @@ body{
     padding: 4px 8px;
     color: white;
     border-radius: 6px;
+}
+.custom-radio{
+    display: flex;
+    align-items:  center;
+    justify-content: center;
+    margin-right: var(--spacing-xsmall);
+}
+.custom-radio input {
+    display: none;
+}
+
+.custom-radio .radio-ui {
+    width: 26px;
+    height: 26px;
+    border: 3px solid var(--quaternary-color);
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+.custom-radio input:checked + .radio-ui::after {
+    content: "";
+    width: 14px;
+    height: 14px;
+    background-color: var(--quaternary-color);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#add-todo-btn{
+    background-color: transparent;
+    border: none;
+    color: var(--quaternary-color);
+    font-size: var(--font-size-medium);
+    display: flex;
+    align-items:  center;
+    justify-content: center;
+    gap: var(--spacing-xsmall);
+    font-weight: 600;
+    cursor: pointer;
+}
+#add-todo-btn:hover {
+    font-weight: bold;
+}
+
+#add-todo-btn:hover .text {
+    text-decoration: underline;
+}
+
+#add-todo-btn .plus {
+    font-size: var(--font-size-large);
+    text-decoration: none;
+}
+
+/* ===== Popup Overlay ===== */
+#todo-add-popup {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* ===== Popup Box ===== */
+.todo-add-box {
+    background-color: var(--secondary-color);
+    border: 3px solid var(--quaternary-color);
+    border-radius: 18px;
+    padding: var(--spacing-large);
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    animation: popupScale 0.25s ease;
+}
+
+/* ===== Title ===== */
+.todo-add-box h1 {
+    margin-bottom: var(--spacing-medium);
+    text-align: center;
+    font-size: var(--font-size-large);
+}
+
+/* ===== Form ===== */
+#todo-add-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-medium);
+}
+
+/* ===== Input Group ===== */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-group label {
+    font-size: var(--font-size-small);
+    font-weight: 600;
+}
+
+/* ===== Inputs ===== */
+.input-group input,
+.input-group select {
+    padding: 10px 12px;
+    font-size: var(--font-size-medium);
+    border-radius: 8px;
+    border: 2px solid var(--quaternary-color);
+    background-color: transparent;
+    color: inherit;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(255, 100, 100, 0.25);
+}
+
+/* ===== Button ===== */
+.primary-btn {
+    margin-top: var(--spacing-small);
+    padding: 10px !important;
+    font-size: var(--font-size-medium) !important;
+    width: 100% !important;
+    border-radius: 10px;
+    border: 3px solid var(--quaternary-color) !important;
+    background-color: var(--primary-color);
+    color: white;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.primary-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+/* ===== Popup Animation ===== */
+@keyframes popupScale {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }

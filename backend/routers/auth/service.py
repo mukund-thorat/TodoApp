@@ -14,8 +14,9 @@ from pydantic import EmailStr
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
 
 from backend.database.core import get_db
-from backend.database.service import add_new_user, get_user_by_email, get_user_by_rt_and_user_id, add_temp_user
+from backend.database.pend_user_service import add_temp_user
 from backend.database.schemas import UserSchema, PendingUserSchema
+from backend.database.user_service import add_new_user, get_user_by_email, get_user_by_rt_and_user_id
 from backend.routers.auth.model import UserCredentials, SignUpModel
 from backend.utils.const import REFRESH_TOKEN_EXPIRATION_DAYS
 
@@ -76,14 +77,14 @@ async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncIOMotor
         if not user:
             raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User does not exist")
 
-        return {"email": email, "userId": user.userId}
+        return user
 
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Token has expired", headers={"WWW-Authenticate": "Bearer"})
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=f"Could not validate credentials.")
 
-async def get_current_user_refresh_token(refresh_token: str = Cookie(None), db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
+async def get_current_user_refresh_token(refresh_token: str = Cookie(None), db: AsyncIOMotorDatabase = Depends(get_db)) -> UserSchema:
     if not refresh_token:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
@@ -98,8 +99,7 @@ async def get_current_user_refresh_token(refresh_token: str = Cookie(None), db: 
         if not user:
             raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User does not exist")
 
-        return {"userId": user_id}
-
+        return user
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Session expired")
     except jwt.InvalidTokenError:

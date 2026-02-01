@@ -10,7 +10,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from starlette.status import HTTP_406_NOT_ACCEPTABLE, HTTP_404_NOT_FOUND, HTTP_408_REQUEST_TIMEOUT, \
     HTTP_401_UNAUTHORIZED
 
-from backend.database.service import get_temp_user, remove_temp_user
+from backend.database.pend_user_service import get_temp_user, remove_temp_user
 from backend.database.schemas import PendingUserSchema
 from backend.routers.auth.service import create_user, create_access_token
 
@@ -54,8 +54,6 @@ class OTPManager:
             return False
 
     async def verify_otp(self, email: str, otp: str, avatar: str, db: AsyncIOMotorDatabase) -> str:
-        print(f"active users {self.active_otp}")
-        print(f"email {email}")
         if email not in self.active_otp:
             raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User didn't requested an OTP.")
 
@@ -66,7 +64,6 @@ class OTPManager:
 
         if entry["otp"] == otp:
             pend_user = await get_temp_user(email, db)
-            print(f"pend user {pend_user}")
             if pend_user is None:
                 raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User is not registered, Direct OTP request is now allowed!")
 

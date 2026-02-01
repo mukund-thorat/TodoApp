@@ -5,11 +5,11 @@ from pydantic import BaseModel, EmailStr
 
 
 class TodoSchema(BaseModel):
+    userId: str
     id: str
     title: str
-    description: str
     priority: int
-    isCompleted: bool
+    isActive: bool
     dueDate: datetime
     createdAt: datetime
 

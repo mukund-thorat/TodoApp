@@ -10,7 +10,8 @@ from starlette.status import HTTP_201_CREATED, HTTP_406_NOT_ACCEPTABLE, HTTP_202
     HTTP_404_NOT_FOUND, HTTP_200_OK
 
 from backend.database.core import get_db
-from backend.database.service import get_user_by_refresh_token, update_refresh_token
+from backend.database.schemas import UserSchema
+from backend.database.user_service import get_user_by_refresh_token, update_refresh_token
 from backend.routers.auth.model import UserCredentials, SignUpModel, OTPVerificationModel
 from backend.routers.auth.otp_manager import OTPManager
 from backend.routers.auth.service import authenticate_user, create_access_token, get_current_user, \
@@ -32,23 +33,7 @@ async def login(request: Request, response: Response, form_data: Annotated[OAuth
     if not user:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Authentication Failed!")
 
-    refresh_token = create_refresh_token(user_id=user.userId)
-
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,  # True in production (HTTPS)
-        samesite="strict",
-        max_age=7 * 24 * 60 * 60 # 7 days
-    )
-
-    await update_refresh_token(email=user.email, new_refresh_token=refresh_token, db=db)
-
-    return {
-        "access_token": create_access_token(email=user.email, user_id=user.userId, delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)),
-        "token_type": "bearer"
-    }
+    return await login_process(response, user, db)
 
 @router.get("/refresh")
 @limiter.limit(f"{RATE_LIMIT}/minute")
@@ -82,7 +67,7 @@ async def token_refresher(request: Request, response: Response, refresh_token: s
 
 @router.get("/me")
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def get_me(request: Request, user: dict = Depends(get_current_user)):
+async def get_me(request: Request, user: UserSchema = Depends(get_current_user)):
     if user is None:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Authentication Failed!")
     return user
@@ -111,11 +96,14 @@ async def otp_verifier(request: Request, otp_payload: OTPVerificationModel, db: 
 
 @router.post("/token_login", status_code=HTTP_202_ACCEPTED)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def token_login(request: Request, response: Response, user: dict = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+async def token_login(request: Request, response: Response, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
     if user is None:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Authentication Failed!")
 
-    refresh_token = create_refresh_token(user_id=user['userId'])
+    return await login_process(user, response, db)
+
+async def login_process(response: Response, user: UserSchema, db: AsyncIOMotorDatabase):
+    refresh_token = create_refresh_token(user_id=user.userId)
 
     response.set_cookie(
         key="refresh_token",
@@ -126,9 +114,9 @@ async def token_login(request: Request, response: Response, user: dict = Depends
         max_age=7 * 24 * 60 * 60
     )
 
-    await update_refresh_token(email=user['email'], new_refresh_token=refresh_token, db=db)
+    await update_refresh_token(email=user.email, new_refresh_token=refresh_token, db=db)
 
     return {
-        "access_token": create_access_token(email=user['email'], user_id=user['userId'], delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)),
+        "access_token": create_access_token(email=user.email, user_id=user.userId,delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)),
         "token_type": "bearer"
     }

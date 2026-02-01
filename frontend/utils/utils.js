@@ -1,4 +1,4 @@
-async function fetchWithAuth(url, options = {}, callback = null) {
+export async function fetchWithAuth(url, options = {}, callback = null) {
   let accessToken = sessionStorage.getItem("access_token");
 
   options.headers = {
@@ -29,7 +29,7 @@ async function fetchWithAuth(url, options = {}, callback = null) {
   return res;
 }
 
-async function refresh_request(options = {}) {
+export async function refresh_request(options = {}) {
   const refreshRes = await fetch("/refresh", {
     method: "GET",
     credentials: "include"

@@ -2,24 +2,26 @@ from fastapi import APIRouter, Request
 from fastapi.params import Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from .model import TodoModel
+from .service import add_new_todo
+from ..auth.service import get_current_user
 from ...database.core import get_db
-from ...database.service import get_todos, create_todo, update, delete
-from ...database.schemas import TodoSchema
+from ...database.schemas import TodoSchema, UserSchema
+from ...database.todo_service import get_active_todos, update, delete
 from ...utils.const import RATE_LIMIT
 from ...utils.rate_limiting import limiter
 
 router = APIRouter(prefix="/todos", tags=["todos"])
 
-@router.get("/")
+@router.get("/active_todos")
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def fetch_all_todos(request: Request, limit: int = 15, sort_field: str = "createdAt", sort_direction: int = 1, db: AsyncIOMotorDatabase = Depends(get_db)) -> list[TodoSchema]:
-    return await get_todos(limit=limit, sort_by=(sort_field, sort_direction), db=db)
+async def fetch_all_active_todos(request: Request, limit: int = 15, skip: int = 0, db: AsyncIOMotorDatabase = Depends(get_db), user: UserSchema = Depends(get_current_user)) -> list[TodoSchema]:
+    return await get_active_todos(user_id=user.userId, limit=limit, skip=skip, db=db)
 
 @router.post("/create")
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def fetch_all_todos(request: Request, todo: TodoSchema, db: AsyncIOMotorDatabase = Depends(get_db)) -> dict:
-    response = await create_todo(todo, db)
-
+async def create_todo(request: Request, model: TodoModel, db: AsyncIOMotorDatabase = Depends(get_db), user: UserSchema = Depends(get_current_user)) -> dict:
+    response = await add_new_todo(user.userId, model, db)
     return {"message": "Todo created successfully."} if response else {"message": "Failed to create todo."}
 
 @router.put("/update/{todo_id}")

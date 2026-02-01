@@ -25,9 +25,7 @@ form.addEventListener('submit', async (e) => {
         });
 
         const result = await response.json();
-        console.log(result);
         if (result && response.ok){
-            console.log('Otp verification successful!');
             if (!result['login_token']){
                 alert("Exception occurred with login token");
                 return;
@@ -51,9 +49,7 @@ async function token_login(token) {
     })
 
     const result = await response.json();
-    console.log(result);
     if (result !== null && response.ok){
-        console.log("result");
         let access_token = result['access_token'];
         await access_app(access_token);
     }
