@@ -1,4 +1,5 @@
 import { fetchWithAuth } from "/static/utils/utils.js";
+import { loadTodos } from "/static/pages/app/todo.js";
 
 const add_button = document.getElementById("add-todo-btn");
 const popup = document.getElementById("todo-add-popup");
@@ -30,8 +31,10 @@ addForm.addEventListener("submit", async (e) => {
 
   if (response?.ok) {
     popup.style.display = "none";
+    await loadTodos();
     addForm.reset();
   } else {
     console.error("Failed to add todo");
   }
 });
+

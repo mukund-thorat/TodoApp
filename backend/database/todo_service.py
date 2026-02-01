@@ -26,9 +26,16 @@ async def get_todo(todo_id: str, db: AsyncIOMotorDatabase) -> TodoSchema:
     todo = await db.get_collection(TODO_COLL).find_one({"id": todo_id})
     return TodoSchema(**todo)
 
-async def update(todo_id: str, new_todo: TodoSchema, db: AsyncIOMotorDatabase) -> bool:
+async def todo_update_title(todo_id: str, updated_title: str, db: AsyncIOMotorDatabase) -> bool:
     try:
-        await db.get_collection(TODO_COLL).update_one({"id": todo_id}, {"$set": new_todo.model_dump()})
+        await db.get_collection(TODO_COLL).update_one({"id": todo_id}, {"$set": {"title": updated_title}})
+        return True
+    except PyMongoError:
+        return False
+
+async def mark_todo(todo_id: str, mark: bool, db: AsyncIOMotorDatabase) -> bool:
+    try:
+        await db.get_collection(TODO_COLL).update_one({"id": todo_id}, {"$set": {"isActive": mark}})
         return True
     except PyMongoError:
         return False

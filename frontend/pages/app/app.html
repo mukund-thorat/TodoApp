@@ -7,7 +7,9 @@
     <title>Todo By Mukund</title>
     <link rel="stylesheet" href="/static/pages/app/app.css">
     <link rel="stylesheet" href="/static/utils/components.css">
+    <script type="module" src="/static/pages/app/todo.js" defer></script>
     <script type="module" src="/static/pages/app/app.js" defer></script>
+    <script type="module" src="/static/pages/app/completed_todo.js" defer></script>
 </head>
 
 <body>
@@ -61,12 +63,12 @@
 
         <section class="todo-container">
             <div class="tab">
-                <button class="active-tab-btn"><img src="/static/static/active.svg">Active</button>
-                <button><img src="/static/static/tick.svg">Completed</button>
+                <button id="active-tab-btn" class="selected-tab"><img src="/static/static/active.svg">Active</button>
+                <button id="completed-tab-btn"><img src="/static/static/tick.svg">Completed</button>
             </div>
 
             <div id="todos-box">
-                {% for todo in todos %}
+                <!-- {% for todo in todos %}
                 <div id="todo-item">
                     <div class="todo-data">
                         <label class="custom-radio">
@@ -78,10 +80,11 @@
                         <h3 id="todo-title">{{ todo.title }}</h3>
                     </div>
                     <div class="action-btn">
-
+                        <button onclick="" id="edit-todo-btn"><img src="/static/static/edit.svg" alt="Edit"></button>
+                        <button id="delete-todo-btn"><img src="/static/static/trash.svg" alt="Delete"></button>
                     </div>
                 </div>
-                {% endfor %}
+                {% endfor %} -->
             </div>
             <button id="add-todo-btn">
                 <span class="plus">+</span>
