@@ -1,8 +1,10 @@
 from datetime import datetime
 
+from fastapi import HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import EmailStr
 from pymongo.errors import PyMongoError
+from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 
 from backend.database.schemas import UserSchema
 from backend.utils.sv_logger import sv_logger
@@ -21,8 +23,24 @@ async def get_user_by_email(email: EmailStr, db: AsyncIOMotorDatabase) -> UserSc
         return UserSchema(**user)
     return None
 
-async def remove_user(user_schema: UserSchema, db: AsyncIOMotorDatabase):
-    await db.get_collection(USER_COLL).delete_one({"email": user_schema.email})
+async def remove_user(email: EmailStr, db: AsyncIOMotorDatabase):
+    try:
+        result = await db.get_collection(USER_COLL).delete_one({"email": email})
+
+        if result.deleted_count == 0:
+            raise HTTPException(
+                status_code=HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        return True
+
+    except Exception as e:
+        sv_logger.error(f"Failed to delete user {email}: {e}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete user"
+        )
 
 async def update_user_password(email: EmailStr, new_hashed_password: str, db: AsyncIOMotorDatabase):
     await db.get_collection(USER_COLL).update_one({"email": email}, {"$set": {"passwordHash": new_hashed_password}})

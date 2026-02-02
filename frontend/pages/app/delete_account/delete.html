@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Todo By Mukund - Delete Account</title>
+    <link rel="stylesheet" href="/static/utils/components.css">
+    <link rel="stylesheet" href="/static/pages/app/delete_account/delete.css">
+    <script type="module" src="/static/utils/utils.js" defer></script>
+    <script type="module" src="/static/pages/app/delete_account/delete.js" defer></script>
+</head>
+
+<body>
+    <form id="delete-form">
+        <div class="shadow-box">
+            <h1>Delete Account</h1>
+            <section class="fields">
+                <div class="field">
+                    <label for="email">Email</label>
+                    <input disabled type="email" name="email" id="email" placeholder="example@test.com"
+                        value="{{ email }}">
+                </div>
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" name="password" id="password" placeholder="Enter your password">
+                </div>
+            </section>
+            <button type="submit" id="submit-btn" class="primary-btn spinner-btn">
+                <span class="spinner hide"></span>
+                <span class="btn-text">Generate OTP</span>
+            </button>
+        </div>
+    </form>
+</body>
+</html>

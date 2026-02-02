@@ -39,3 +39,7 @@ async def login(request: Request, db: AsyncIOMotorDatabase = Depends(get_db)):
 async def app_page(request: Request, user: UserSchema = Depends(get_current_user_refresh_token), db: AsyncIOMotorDatabase = Depends(get_db)):
     todos = await get_active_todos(user_id=user.userId, limit=15, skip=0, db=db)
     return templates.TemplateResponse('app/app.html', {"request": request, "user": user, "todos": todos})
+
+@router.get("/delete_account")
+async def app_page(request: Request, user: UserSchema = Depends(get_current_user_refresh_token)):
+    return templates.TemplateResponse('app/delete_account/delete.html', {"request": request, "email": user.email})

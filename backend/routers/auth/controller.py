@@ -12,7 +12,8 @@ from starlette.status import HTTP_201_CREATED, HTTP_406_NOT_ACCEPTABLE, HTTP_202
 from backend.database.core import get_db
 from backend.database.schemas import UserSchema
 from backend.database.user_service import get_user_by_refresh_token, update_refresh_token, update_user_records
-from backend.routers.auth.model import UserCredentials, SignUpModel, OTPVerificationModel
+from backend.routers.auth.model import UserCredentials, SignUpModel, LoginOTPVerificationModel, \
+    DeleteOTPVerificationModel
 from backend.routers.auth.otp_manager import OTPManager
 from backend.routers.auth.service import authenticate_user, create_access_token, get_current_user, \
     create_refresh_token, store_temp_user
@@ -90,14 +91,14 @@ async def register_user(request: Request, signup_data: SignUpModel, db: AsyncIOM
 @limiter.limit(f"{RATE_LIMIT}/minute")
 async def otp_request(request: Request, email: EmailStr):
     otp_manager = OTPManager()
-    is_send = otp_manager.send_otp(email)
+    is_send = otp_manager.send_otp(email, purpose="LOGIN")
     return {"msg": 'successfully sent OTP to {}'.format(email), 'status': 'SUCCESS'} if is_send else {"msg": 'failed to send OTP to {}'.format(email), 'status': 'FAILED'}
 
 @router.post("/otp/verify_otp", status_code=HTTP_200_OK)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def otp_verifier(request: Request, otp_payload: OTPVerificationModel, db: AsyncIOMotorDatabase = Depends(get_db)):
+async def otp_verifier(request: Request, otp_payload: LoginOTPVerificationModel, db: AsyncIOMotorDatabase = Depends(get_db)):
     otp_manager = OTPManager()
-    token = await otp_manager.verify_otp(otp_payload.email, otp_payload.otp, otp_payload.avatar, db)
+    token = await otp_manager.verify_otp(otp_payload.email, otp_payload.otp, purpose="LOGIN", callback=lambda : otp_manager.login_verification(otp_payload.email, otp_payload.avatar, db))
     return {"login_token": token, "token_type": "bearer"}
 
 @router.post("/token_login", status_code=HTTP_202_ACCEPTED)
@@ -106,7 +107,7 @@ async def token_login(request: Request, response: Response, user: UserSchema = D
     if user is None:
         raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Authentication Failed!")
 
-    return await login_process(user, response, db)
+    return await login_process(response, user, db)
 
 async def login_process(response: Response, user: UserSchema, db: AsyncIOMotorDatabase):
     refresh_token = create_refresh_token(user_id=user.userId)
@@ -127,3 +128,18 @@ async def login_process(response: Response, user: UserSchema, db: AsyncIOMotorDa
         "access_token": create_access_token(email=user.email, user_id=user.userId,delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)),
         "token_type": "bearer"
     }
+
+@router.post("/delete/verify_password")
+@limiter.limit(f"{RATE_LIMIT}/minute")
+async def verify_password(request: Request, credentials: UserCredentials, _: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+    user = await authenticate_user(credentials=credentials, db=db)
+    if not user:
+        return False
+    otp_manager = OTPManager()
+    return otp_manager.send_otp(email=credentials.email, purpose="DELETE_ACCOUNT")
+
+@router.post("/delete/verify_otp", status_code=HTTP_200_OK)
+@limiter.limit(f"{RATE_LIMIT}/minute")
+async def otp_verifier(request: Request, otp_payload: DeleteOTPVerificationModel, db: AsyncIOMotorDatabase = Depends(get_db)):
+    otp_manager = OTPManager()
+    return await otp_manager.verify_otp(otp_payload.email, otp_payload.otp, purpose="DELETE_ACCOUNT", callback=lambda : otp_manager.delete_user(otp_payload.email, db))

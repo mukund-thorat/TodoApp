@@ -4,14 +4,17 @@ import smtplib
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from smtplib import SMTPException
+from typing import Callable, Awaitable, Any
 
 from fastapi import HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic import EmailStr
 from starlette.status import HTTP_406_NOT_ACCEPTABLE, HTTP_404_NOT_FOUND, HTTP_408_REQUEST_TIMEOUT, \
     HTTP_401_UNAUTHORIZED
 
 from backend.database.pend_user_service import get_temp_user, remove_temp_user
 from backend.database.schemas import PendingUserSchema
+from backend.database.user_service import remove_user
 from backend.routers.auth.service import create_user, create_access_token
 
 
@@ -24,18 +27,18 @@ class OTPManager:
         self.smtp_email = os.getenv("SMTP_EMAIL")
         self.smtp_password = os.getenv("SMTP_PASS")
 
-    def __generate_otp(self, email: str) -> str:
+    def __generate_otp(self, email: str, purpose: str) -> str:
         otp = "".join([str(random.randint(0, 9)) for _ in range(self.OTP_LENGTH)])
 
-        self.active_otp[email] = {
+        self.active_otp[f'{purpose}:{email}'] = {
             "otp": otp,
             "expires": datetime.now() + timedelta(minutes=self.EXPIRY_MINUTES),
         }
 
         return otp
 
-    def send_otp(self, email: str) -> bool:
-        otp = self.__generate_otp(email)
+    def send_otp(self, email: str, purpose: str) -> bool:
+        otp = self.__generate_otp(email, purpose)
 
         msg = MIMEText(f"Your OTP is: {otp}\nThis OTP expires in {self.EXPIRY_MINUTES} minutes.")
         msg["Subject"] = "OTP - Todo By Mukund"
@@ -53,29 +56,38 @@ class OTPManager:
         except SMTPException:
             return False
 
-    async def verify_otp(self, email: str, otp: str, avatar: str, db: AsyncIOMotorDatabase) -> str:
-        if email not in self.active_otp:
-            raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User didn't requested an OTP.")
-
-        entry = self.active_otp[email]
-        if datetime.now() > entry["expires"]:
-            del self.active_otp[email]
-            raise HTTPException(status_code=HTTP_408_REQUEST_TIMEOUT, detail="OTP expired.")
-
-        if entry["otp"] == otp:
-            pend_user = await get_temp_user(email, db)
-            if pend_user is None:
-                raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User is not registered, Direct OTP request is now allowed!")
-
-            await self.__create_new_user(pend_user, avatar, db)
-            await remove_temp_user(email, db)
-            del self.active_otp[email]
-            return create_access_token(email, "temp_id", timedelta(minutes=5))
-
-        return HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Wrong OTP.")
-
     @staticmethod
     async def __create_new_user(pend_user_shema: PendingUserSchema, avatar: str, db: AsyncIOMotorDatabase):
         if pend_user_shema.email is None or pend_user_shema.passwordHash is None or pend_user_shema is None:
             raise HTTPException(status_code=HTTP_406_NOT_ACCEPTABLE, detail="Invalid signup data")
         await create_user(pend_user_shema, avatar, db=db)
+
+    async def verify_otp(self, email: str, otp: str, purpose: str, callback: Callable[[], Awaitable[Any]]) -> Any:
+        if f"{purpose}:{email}" not in self.active_otp:
+            raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User didn't requested an OTP.")
+
+        entry = self.active_otp[f"{purpose}:{email}"]
+        if datetime.now() > entry["expires"]:
+            del self.active_otp[f"{purpose}:{email}"]
+            raise HTTPException(status_code=HTTP_408_REQUEST_TIMEOUT, detail="OTP expired.")
+
+        if entry["otp"] != otp:
+            return HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Wrong OTP.")
+
+        return await callback()
+
+    async def login_verification(self, email, avatar: str, db: AsyncIOMotorDatabase):
+        pend_user = await get_temp_user(email, db)
+        if pend_user is None:
+            raise HTTPException(status_code=HTTP_404_NOT_FOUND,
+                                detail="User is not registered, Direct OTP request is now allowed!")
+
+        await self.__create_new_user(pend_user, avatar, db)
+        await remove_temp_user(email, db)
+        del self.active_otp[f"LOGIN:{email}"]
+        return create_access_token(email, "temp_id", timedelta(minutes=5))
+
+    async def delete_user(self, email: EmailStr, db: AsyncIOMotorDatabase):
+        response = await remove_user(email, db)
+        del self.active_otp[f"DELETE_ACCOUNT:{email}"]
+        return response

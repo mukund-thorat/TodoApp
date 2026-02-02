@@ -14,7 +14,11 @@ class Token(BaseModel):
     accessToken: str
     tokenType: str
 
-class OTPVerificationModel(BaseModel):
+class LoginOTPVerificationModel(BaseModel):
     email: EmailStr
     otp: str
     avatar: str
+
+class DeleteOTPVerificationModel(BaseModel):
+    email: EmailStr
+    otp: str
