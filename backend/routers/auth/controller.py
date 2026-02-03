@@ -1,183 +1,81 @@
-from datetime import timedelta, datetime
+from datetime import datetime
 from typing import Annotated
-
-from fastapi import APIRouter, HTTPException, Request, Response
-from fastapi.params import Depends, Cookie
+from fastapi import APIRouter, Request, Response
+from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import EmailStr
-from starlette.status import HTTP_201_CREATED, HTTP_406_NOT_ACCEPTABLE, HTTP_202_ACCEPTED, HTTP_401_UNAUTHORIZED, \
-    HTTP_404_NOT_FOUND, HTTP_200_OK
+from starlette.status import HTTP_201_CREATED, HTTP_202_ACCEPTED, HTTP_200_OK
 
-from backend.database.core import get_db
-from backend.database.schemas import UserSchema
-from backend.database.user_service import get_user_by_refresh_token, update_refresh_token, update_user_records, \
-    get_user_by_email
-from backend.routers.auth.model import UserCredentials, SignUpModel, LoginOTPVerificationModel, OTPVerificationModel, \
-    PasswordRecoveryModel, PasswordChangeModel, RecoveryOTPModel
-from backend.routers.auth.otp_manager import OTPManager
-from backend.routers.auth.service import authenticate_user, create_access_token, get_current_user, \
-    create_refresh_token, store_temp_user, change_user_password_by_token
-from backend.utils.const import ACCESS_TOKEN_EXPIRE_MINUTES, RATE_LIMIT
+from backend.data.core import get_db
+from backend.data.schemas import UserSchema
+from backend.routers.auth.repo_user import set_user_timestamp
+from backend.routers.auth.models import UserCredentials, SignUpModel, LoginOTPVerificationModel, Token
+from backend.routers.auth.service import authenticate_user, store_pend_user, login_verification, tokens_generator
+from backend.utils.const import RATE_LIMIT
+from backend.utils.errors import ValidationError
+from backend.utils.otp_manager import OTPManager, OTPPurpose
 from backend.utils.rate_limiting import limiter
+from backend.utils.response_model import ResponseModel, ResponseCode
+from backend.utils.security import get_current_user, get_current_user_refresh_token
+from backend.routers.auth.pass_recovery.controller import router as pass_recovery_router
+
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+router.include_router(pass_recovery_router)
 
-@router.post("/login", status_code=HTTP_202_ACCEPTED)
+
+@router.post("/login", status_code=HTTP_202_ACCEPTED, response_model=Token)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def login(request: Request, response: Response, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: AsyncIOMotorDatabase = Depends(get_db)):
+async def login(_request: Request, response: Response, form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: AsyncIOMotorDatabase = Depends(get_db)):
     if form_data.username is None or form_data.password is None:
-        raise HTTPException(status_code=HTTP_406_NOT_ACCEPTABLE, detail="Email or password is required")
+        raise ValidationError("Email or password is required")
 
     credentials = UserCredentials(email=form_data.username, password=form_data.password)
+
     user = await authenticate_user(credentials=credentials, db=db)
+    await set_user_timestamp(email=user.email, date_time_field="lastLogIn", new_date_time=datetime.now(), db=db)
 
-    return await login_process(response, user, db)
+    return await tokens_generator(response, user, db)
 
-@router.get("/recovery/recover_password", status_code=HTTP_200_OK)
+
+@router.get("/refresh", status_code=HTTP_201_CREATED)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def recover_password(request: Request, email: EmailStr, db: AsyncIOMotorDatabase = Depends(get_db)):
-    user = await get_user_by_email(email=email, db=db)
-    if user is None:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User with this email does not exist!")
-    otp_manager = OTPManager()
-    return otp_manager.send_otp(email, purpose="RECOVER_PASSWORD")
+async def token_regenerator(_request: Request, response: Response, user: UserSchema = Depends(get_current_user_refresh_token), db: AsyncIOMotorDatabase = Depends(get_db)):
+    return tokens_generator(response, user, db)
 
-@router.post("/recovery/verify_otp", status_code=HTTP_200_OK)
+
+@router.get("/logout", status_code=HTTP_200_OK, response_model=ResponseModel)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_recovery_otp(request: Request, otp_payload: RecoveryOTPModel):
-    otp_manager = OTPManager()
-    return await otp_manager.verify_otp(otp_payload.email, otp_payload.otp, purpose="RECOVER_PASSWORD",
-                                        callback=lambda: otp_manager.recover_password_verification(otp_payload.email))
-
-@router.post("/recovery/change_password", status_code=HTTP_200_OK)
-@limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_recovery_otp(request: Request, payload: PasswordRecoveryModel, db: AsyncIOMotorDatabase = Depends(get_db)):
-    return await change_user_password_by_token(token=payload.recoveryToken, new_password=payload.newPassword, db=db)
-
-@router.get("/refresh")
-@limiter.limit(f"{RATE_LIMIT}/minute")
-async def token_refresher(request: Request, response: Response, refresh_token: str = Cookie(None), db: AsyncIOMotorDatabase = Depends(get_db)):
-    if not refresh_token:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
-
-    user = await get_user_by_refresh_token(refresh_token=refresh_token, db=db)
-
-    if user is None:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Invalid refresh token!")
-
-    new_refresh_token = create_refresh_token(user_id=user.userId)
-    access_token = create_access_token(email=user.email, user_id=user.userId, delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-
-    await update_refresh_token(email=user.email, new_refresh_token=new_refresh_token, db=db)
-
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=7 * 24 * 60 * 60
-    )
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
-
-@router.get("/logout", status_code=HTTP_200_OK)
-@limiter.limit(f"{RATE_LIMIT}/minute")
-async def logout(request: Request, response: Response):
+async def logout(_request: Request, response: Response):
     response.delete_cookie(key="refresh_token")
-    return {"message": "Successfully logged out", "status": "SUCCESS"}
+    return ResponseModel(code=ResponseCode.ACK, message="Successfully Logged Out")
 
-@router.get("/me")
-@limiter.limit(f"{RATE_LIMIT}/minute")
-async def get_me(request: Request, user: UserSchema = Depends(get_current_user)):
-    if user is None:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Authentication Failed!")
-    return user
 
-@router.post("/register", status_code=HTTP_202_ACCEPTED)
+@router.post("/register", status_code=HTTP_202_ACCEPTED, response_model=ResponseModel)
 @limiter.limit(f'{RATE_LIMIT}/minute')
-async def register_user(request: Request, signup_data: SignUpModel, db: AsyncIOMotorDatabase = Depends(get_db)):
-    if signup_data.email is None or signup_data.password is None or signup_data is None:
-        raise HTTPException(status_code=HTTP_406_NOT_ACCEPTABLE, detail="Invalid signup data")
-    await store_temp_user(signup_data, db)
-    return {"message": "User registered", "status": "SUCCESS"}
+async def register_user(_request: Request, signup_data: SignUpModel, db: AsyncIOMotorDatabase = Depends(get_db)):
+    await store_pend_user(signup_data, db)
+    return ResponseModel(code=ResponseCode.CREATED, message="Successfully Registered")
 
-@router.post("/otp/request", status_code=HTTP_201_CREATED)
+
+@router.post("/otp/request", status_code=HTTP_201_CREATED, response_model=ResponseModel)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def otp_request(request: Request, email: EmailStr):
-    otp_manager = OTPManager()
-    is_send = otp_manager.send_otp(email, purpose="LOGIN")
-    return {"msg": 'successfully sent OTP to {}'.format(email), 'status': 'SUCCESS'} if is_send else {"msg": 'failed to send OTP to {}'.format(email), 'status': 'FAILED'}
+async def otp_request(_request: Request, email: EmailStr):
+    OTPManager().send_otp(email, purpose=OTPPurpose.LOGIN)
+    return ResponseModel(code=ResponseCode.CREATED, message="Successfully sent OTP to the email")
 
-@router.post("/otp/verify_otp", status_code=HTTP_200_OK)
+
+@router.post("/otp/verify", status_code=HTTP_200_OK)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def otp_verifier(request: Request, otp_payload: LoginOTPVerificationModel, db: AsyncIOMotorDatabase = Depends(get_db)):
-    otp_manager = OTPManager()
-    token = await otp_manager.verify_otp(otp_payload.email, otp_payload.otp, purpose="LOGIN", callback=lambda : otp_manager.login_verification(otp_payload.email, otp_payload.avatar, db))
-    return {"login_token": token, "token_type": "bearer"}
+async def otp_verifier(_request: Request, payload: LoginOTPVerificationModel, db: AsyncIOMotorDatabase = Depends(get_db)):
+    await OTPManager().verify_otp(payload.email, payload.otp, purpose=OTPPurpose.LOGIN)
+    token = login_verification(payload.email, payload.avatar, db)
+    return {"loginToken": token, "tokenType": "bearer"}
 
-@router.post("/token_login", status_code=HTTP_202_ACCEPTED)
+
+@router.post("/token_login", status_code=HTTP_202_ACCEPTED, response_model=Token)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def token_login(request: Request, response: Response, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
-    if user is None:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Authentication Failed!")
-
-    return await login_process(response, user, db)
-
-async def login_process(response: Response, user: UserSchema, db: AsyncIOMotorDatabase):
-    refresh_token = create_refresh_token(user_id=user.userId)
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=7 * 24 * 60 * 60
-    )
-
-    await update_refresh_token(email=user.email, new_refresh_token=refresh_token, db=db)
-
-    await update_user_records(email=user.email, date_time_field="lastLogIn", new_date_time=datetime.now(), db=db)
-
-    return {
-        "access_token": create_access_token(email=user.email, user_id=user.userId,delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)),
-        "token_type": "bearer"
-    }
-
-@router.post("/delete/verify_password")
-@limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_password(request: Request, credentials: UserCredentials, _: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
-    user = await authenticate_user(credentials=credentials, db=db)
-    if not user:
-        return False
-    otp_manager = OTPManager()
-    return otp_manager.send_otp(email=credentials.email, purpose="DELETE_ACCOUNT")
-
-@router.post("/delete/verify_otp", status_code=HTTP_200_OK)
-@limiter.limit(f"{RATE_LIMIT}/minute")
-async def otp_verifier(request: Request, otp_payload: OTPVerificationModel, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
-    otp_manager = OTPManager()
-    return await otp_manager.verify_otp(user.email, otp_payload.otp, purpose="DELETE_ACCOUNT", callback=lambda : otp_manager.delete_user(otp_payload.email, db))
-
-@router.post("/change/verify_password")
-@limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_password(request: Request, credentials: UserCredentials, _: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
-    await authenticate_user(credentials=credentials, db=db)
-
-    otp_manager = OTPManager()
-    return otp_manager.send_otp(email=credentials.email, purpose="PASS_CHANGE")
-
-@router.post("/change/verify_otp", status_code=HTTP_200_OK)
-@limiter.limit(f"{RATE_LIMIT}/minute")
-async def otp_verifier(request: Request, payload: PasswordChangeModel, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
-    otp_manager = OTPManager()
-    return await otp_manager.verify_otp(user.email, payload.otp, purpose="PASS_CHANGE", callback=lambda : otp_manager.change_user_password(email=user.email, new_password=payload.newPassword, db=db))
-
-@router.get("/user/email", status_code=HTTP_200_OK)
-@limiter.limit(f"{RATE_LIMIT}/minute")
-async def get_user_email(request: Request, user: UserSchema = Depends(get_current_user)):
-    return {"email": user.email}
+async def token_login(_request: Request, response: Response, user: UserSchema = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+    await set_user_timestamp(email=user.email, date_time_field="lastLogIn", new_date_time=datetime.now(), db=db)
+    return await tokens_generator(response, user, db)

@@ -1,3 +1,4 @@
+import { warning_widget, error_widget } from "/static/utils/utils.js";
 const loginForm = document.getElementById("login-form")
 
 loginForm.addEventListener("submit", async (e) => {
@@ -19,14 +20,25 @@ loginForm.addEventListener("submit", async (e) => {
     })
 
     const result = await response.json();
-
+    console.log(response);
+    console.log(result);
     if (response.ok && result) {
         if (!result['access_token']) {
-            alert("Exception occurred with login token");
+            const submitBtn = document.getElementById("submit-btn");
+            submitBtn.insertAdjacentHTML(
+                "beforebegin",
+                error_widget("Login failed: No access token received")
+            );
             return;
         }
 
         sessionStorage.setItem("access_token", result['access_token']);
         window.location.href = "/app";
+    } else {
+        const submitBtn = document.getElementById("submit-btn");
+        submitBtn.insertAdjacentHTML(
+            "beforebegin",
+            error_widget("Login failed: " + (result.detail || "Unknown error"))
+        );
     }
 })

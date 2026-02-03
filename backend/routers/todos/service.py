@@ -3,9 +3,9 @@ from datetime import datetime
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from backend.database.schemas import TodoSchema
-from backend.database.todo_service import create_todo
-from backend.routers.todos.model import TodoModel
+from backend.data.schemas import TodoSchema
+from backend.routers.todos.models import TodoModel
+from backend.routers.todos.repo import insert_todo
 
 
 async def add_new_todo(user_id: str, todo_model: TodoModel, db: AsyncIOMotorDatabase) -> TodoSchema:
@@ -19,4 +19,4 @@ async def add_new_todo(user_id: str, todo_model: TodoModel, db: AsyncIOMotorData
         createdAt=datetime.now(),
     )
 
-    return await create_todo(todo_schema, db)
+    return await insert_todo(todo_schema, db)

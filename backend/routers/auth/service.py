@@ -1,28 +1,30 @@
-import os
 import uuid
 
 from datetime import datetime, timedelta
-from typing import Optional
-
-import jwt
-from fastapi import Depends, HTTPException
-from fastapi.params import Cookie
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, Response
+from jwt import ExpiredSignatureError, InvalidTokenError
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from passlib.context import CryptContext
-from pydantic import EmailStr
-from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
 
-from backend.database.core import get_db
-from backend.database.pend_user_service import add_temp_user
-from backend.database.schemas import UserSchema, PendingUserSchema
-from backend.database.user_service import add_new_user, get_user_by_email, get_user_by_rt_and_user_id, \
-    update_user_password
-from backend.routers.auth.model import UserCredentials, SignUpModel
-from backend.utils.const import REFRESH_TOKEN_EXPIRATION_DAYS
+from backend.data.core import get_db
+from backend.routers.auth.repo_pend_user import fetch_pend_user, delete_pend_user
+from backend.data.schemas import UserSchema, PendingUserSchema
+from backend.routers.auth.repo_user import insert_user, fetch_user_by_email, fetch_user_by_refresh_token_and_user_id, \
+    set_refresh_token
+from backend.routers.auth.models import UserCredentials, SignUpModel, Token
+from backend.utils.const import ACCESS_TOKEN_EXPIRE_MINUTES
+from backend.utils.errors import ValidationError, NotFoundError
+from backend.utils.security import get_password_hash, verify_password, decode_token, create_access_token, \
+    create_refresh_token
 
-bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+async def login_verification(email, avatar: str, db: AsyncIOMotorDatabase):
+    pend_user = await fetch_pend_user(email, db)
+    if pend_user is None:
+        raise NotFoundError("User is not in registered (Not in Pending list)", details={"email": email})
+
+    await create_user(pend_user, avatar, db)
+    await delete_pend_user(email, db)
+    return create_access_token(email, "temp_id", timedelta(minutes=5))
 
 
 async def create_user(pend_user_schema: PendingUserSchema, avatar: str, db: AsyncIOMotorDatabase):
@@ -39,108 +41,44 @@ async def create_user(pend_user_schema: PendingUserSchema, avatar: str, db: Asyn
         lastLogIn=None,
     )
 
-    await add_new_user(user_schema, db)
-
-async def authenticate_user(credentials: UserCredentials, db: AsyncIOMotorDatabase) -> UserSchema:
-    user: Optional[UserSchema] = await get_user_by_email(email=credentials.email, db=db)
-
-    if user is None or not bcrypt_context.verify(credentials.password, user.passwordHash):
-        return HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid email or password", headers={"WWW-Authenticate": "Bearer"})
-    return user
-
-def create_access_token(email: EmailStr, user_id: str, delta_expires: timedelta):
-    payload = {
-        "email": email,
-        "userId": user_id,
-        "exp": datetime.now() + delta_expires,
-    }
-
-    return jwt.encode(payload, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
-
-def create_refresh_token(user_id: str):
-    payload = {
-        "userId": user_id,
-        "exp": datetime.now() + timedelta(days=REFRESH_TOKEN_EXPIRATION_DAYS),
-    }
-
-    return jwt.encode(payload, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
-
-async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncIOMotorDatabase = Depends(get_db)) -> UserSchema:
-    try:
-        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
-        email: str = payload.get("email")
-        user_id: str = payload.get("userId")
-
-        if email is None or user_id is None:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid jwt encoded data", headers={"WWW-Authenticate": "Bearer"})
-
-        user = await get_user_by_email(email, db)
-        if not user:
-            raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User does not exist")
-
-        return user
-
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Token has expired", headers={"WWW-Authenticate": "Bearer"})
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=f"Could not validate credentials.")
-
-async def get_current_user_refresh_token(refresh_token: str = Cookie(None), db: AsyncIOMotorDatabase = Depends(get_db)) -> UserSchema:
-    if not refresh_token:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-
-    try:
-        payload = jwt.decode(refresh_token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
-        user_id = payload.get("userId")
-
-        if not user_id:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid session")
-
-        user = await get_user_by_rt_and_user_id(user_id, refresh_token, db)
-        if not user:
-            raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="User does not exist")
-
-        return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Session expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid session")
+    await insert_user(user_schema, db)
 
 
-async def is_user_already_logged_in(refresh_token: str, db: AsyncIOMotorDatabase = Depends(get_db)) -> bool:
-    if not refresh_token:
-        return False
-
-    try:
-        payload = jwt.decode(refresh_token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
-        user_id = payload.get("userId")
-
-        if not user_id:
-            return False
-
-        user = await get_user_by_rt_and_user_id(user_id, refresh_token, db)
-        if not user:
-            return False
-
-        return True
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Session expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="Invalid session")
-
-async def store_temp_user(signup_data: SignUpModel, db: AsyncIOMotorDatabase):
+async def store_pend_user(signup_data: SignUpModel, db: AsyncIOMotorDatabase):
     pend_schema = PendingUserSchema(
         firstName=signup_data.firstName,
         lastName=signup_data.lastName,
         email=signup_data.email,
-        passwordHash=bcrypt_context.hash(signup_data.password),
+        passwordHash=get_password_hash(signup_data.password),
     )
 
-    await add_temp_user(pend_schema, db=db)
+    await insert_user(pend_schema, db=db)
 
-async def change_user_password_by_token(token: str, new_password: str, db: AsyncIOMotorDatabase) -> bool:
-    user: UserSchema = await get_current_user(token=token, db=db)
-    return await update_user_password(user.email, bcrypt_context.hash(new_password), db)
 
-async def change_user_password_by_email(email: EmailStr, new_password: str, db: AsyncIOMotorDatabase) -> bool:
-    return await update_user_password(email, bcrypt_context.hash(new_password), db)
+async def authenticate_user(credentials: UserCredentials, db: AsyncIOMotorDatabase) -> UserSchema:
+    user = await fetch_user_by_email(email=credentials.email, db=db)
+
+    if user is None or not verify_password(credentials.password, user.passwordHash):
+        raise ValidationError("Invalid email or password")
+    return user
+
+
+async def tokens_generator(response: Response, user: UserSchema, db: AsyncIOMotorDatabase) -> Token:
+    refresh_token = create_refresh_token(user_id=user.userId)
+    access_token = create_access_token(email=user.email, user_id=user.userId, delta_expires=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+
+    await set_refresh_token(email=user.email, new_refresh_token=refresh_token, db=db)
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=7 * 24 * 60 * 60
+    )
+
+    return Token(
+        accessToken= access_token,
+        tokenType= "bearer"
+    )

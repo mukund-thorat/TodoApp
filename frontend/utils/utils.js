@@ -65,3 +65,29 @@ export async function logout() {
         window.location.href = "/login";
     }
 }
+
+function warning_widget(message) {
+    return `
+    <div class="alert alert-warning">
+        <p>${message}</p>
+    </div>
+    `;
+}
+
+function error_widget(message) {
+    return `
+    <div class="alert alert-danger">
+        <p>${message}</p>
+    </div>
+    `;
+}
+
+function success_widget(message) {
+    return `
+    <div class="alert alert-success">
+        <p>${message}</p>
+    </div>
+    `;
+}
+
+export { warning_widget, error_widget, success_widget };

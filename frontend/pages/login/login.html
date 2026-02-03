@@ -5,9 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Todo By Mukund - Login</title>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+
     <link rel="stylesheet" href="/static/utils/components.css">
     <link rel="stylesheet" href="/static/pages/login/login.css">
-    <script src="/static/pages/login/login.js" defer></script>
+    <script type="module" src="/static/pages/login/login.js" defer></script>
 </head>
 
 <body>
@@ -17,15 +22,15 @@
             <section class="fields">
                 <div class="field">
                     <label for="email">Email</label>
-                    <input type="email" name="email" id="email" placeholder="example@test.com">
+                    <input required type="email" name="email" id="email" placeholder="example@test.com">
                 </div>
                 <div class="field">
                     <label for="password">Password</label>
-                    <input type="password" name="password" id="password" placeholder="Enter your password">
+                    <input required type="password" name="password" id="password" placeholder="Enter your password">
                 </div>
             </section>
             <a id="f_pass" href="/recover_password">Forget password?</a>
-            <button type="submit" class="primary-btn">Proceed</button>
+            <button id="submit-btn" type="submit" class="primary-btn">Proceed</button>
         </div>
     </form>
 </body>
