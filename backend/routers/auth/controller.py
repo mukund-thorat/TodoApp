@@ -8,7 +8,7 @@ from pydantic import EmailStr
 from starlette.status import HTTP_201_CREATED, HTTP_202_ACCEPTED, HTTP_200_OK
 
 from backend.data.core import get_db
-from backend.data.schemas import UserSchema
+from backend.data.schemas import UserSchema, AuthServiceProvider
 from backend.routers.auth.repo_user import set_user_timestamp
 from backend.routers.auth.models import UserCredentials, SignUpModel, LoginOTPVerificationModel, Token
 from backend.routers.auth.service import authenticate_user, store_pend_user, login_verification, tokens_generator
@@ -19,10 +19,12 @@ from backend.utils.rate_limiting import limiter
 from backend.utils.response_model import ResponseModel, ResponseCode
 from backend.utils.security import get_current_user, get_current_user_refresh_token
 from backend.routers.auth.pass_recovery.controller import router as pass_recovery_router
+from backend.routers.auth.google.controller import router as google_router
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 router.include_router(pass_recovery_router)
+router.include_router(google_router)
 
 
 @router.post("/login", status_code=HTTP_202_ACCEPTED, response_model=Token)
@@ -55,7 +57,7 @@ async def logout(request: Request, response: Response):
 @router.post("/register", status_code=HTTP_202_ACCEPTED, response_model=ResponseModel)
 @limiter.limit(f'{RATE_LIMIT}/minute')
 async def register_user(request: Request, signup_data: SignUpModel, db: AsyncIOMotorDatabase = Depends(get_db)):
-    await store_pend_user(signup_data, db)
+    await store_pend_user(signup_data, AuthServiceProvider.ME, db)
     return ResponseModel(code=ResponseCode.CREATED, message="Successfully Registered")
 
 

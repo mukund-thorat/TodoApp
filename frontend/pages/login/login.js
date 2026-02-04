@@ -20,8 +20,6 @@ loginForm.addEventListener("submit", async (e) => {
     })
 
     const result = await response.json();
-    console.log(response);
-    console.log(result);
     if (response.status === 202 && result) {
         if (!result['access_token']) {
             const submitBtn = document.getElementById("submit-btn");

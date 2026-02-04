@@ -1,4 +1,4 @@
-import { error_widget, fetchWithAuth } from "/static/utils/utils.js";
+import { clearButtonLoading, error_widget, fetchWithAuth, initOtpInputs, readOtp, setButtonLoading } from "/static/utils/utils.js";
 
 const form = document.getElementById('delete-form');
 
@@ -8,11 +8,7 @@ form.addEventListener("submit", async (e) => {
     const email = form.email.value;
     const password = form.password.value;
     const submitBtn = document.getElementById("submit-btn");
-    submitBtn.disabled = true;
-    const spinner = submitBtn.querySelector(".spinner");
-    const btnText = submitBtn.querySelector(".btn-text");
-    btnText.textContent = "Generating OTP";
-    spinner.classList.remove("hide");
+    setButtonLoading(submitBtn, "Generating OTP");
     const response = await fetchWithAuth('/user/delete_account/verify_password', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
@@ -20,9 +16,7 @@ form.addEventListener("submit", async (e) => {
 
     const result = await response.json();
     if (!response.ok) {
-        submitBtn.disabled = false;
-        spinner.classList.add("hide");
-        btnText.textContent = "Verify & Generate OTP";
+        clearButtonLoading(submitBtn, "Verify & Generate OTP");
         submitBtn.insertAdjacentHTML(
             "beforebegin",
             error_widget("Login failed: " + (result.message || "Unknown error"))
@@ -50,71 +44,14 @@ form.addEventListener("submit", async (e) => {
         <button id="submit-btn" type="submit" class="primary-btn">Verify & Delete</button>
     </div>
 </form>
-<script src="/static/pages/otp/inputs.js" defer></script>
 `;
 
         const otpForm = document.getElementById("otp-form");
-        const inputs = document.querySelectorAll('.otp-input');
-
-        inputs.forEach((input, index) => {
-            // Handle input
-            input.addEventListener('input', (e) => {
-                // Check if input is a number
-                if (!/^[0-9]$/.test(e.data) && e.inputType !== 'deleteContentBackward') {
-                    input.value = ''; // clear invalid input
-                    return;
-                }
-
-                if (e.data && index < inputs.length - 1) {
-                    inputs[index + 1].focus();
-                }
-            });
-
-            // Handle backspace/navigation
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace') {
-                    if (input.value === '' && index > 0) {
-                        inputs[index - 1].focus();
-                    }
-                } else if (e.key === 'ArrowLeft' && index > 0) {
-                    inputs[index - 1].focus();
-                } else if (e.key === 'ArrowRight' && index < inputs.length - 1) {
-                    inputs[index + 1].focus();
-                }
-            });
-
-            // Handle paste
-            input.addEventListener('paste', (e) => {
-                e.preventDefault();
-                const pasteData = e.clipboardData.getData('text').replace(/[^0-9]/g, ''); // only numbers
-
-                if (pasteData) {
-                    const chars = pasteData.split('');
-                    let currentIndex = index;
-
-                    chars.forEach(char => {
-                        if (currentIndex < inputs.length) {
-                            inputs[currentIndex].value = char;
-                            currentIndex++;
-                        }
-                    });
-
-                    // Focus the next empty input or the last one
-                    if (currentIndex < inputs.length) {
-                        inputs[currentIndex].focus();
-                    } else {
-                        inputs[inputs.length - 1].focus();
-                    }
-                }
-            });
-        });
+        initOtpInputs();
         otpForm.addEventListener("submit", async (e) => {
             e.preventDefault();
 
-            const otpInputs = document.querySelectorAll('.otp-input');
-            let otp = "";
-
-            otpInputs.forEach(input => otp += input.value);
+            const otp = readOtp();
 
             if (otp.length !== 6) {
                 alert("Enter full 6-digit OTP");

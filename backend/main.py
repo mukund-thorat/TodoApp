@@ -1,8 +1,11 @@
 import uuid
 from contextlib import asynccontextmanager
 
+import os
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.staticfiles import StaticFiles
 
 from .data.core import connect_to_db, close_db
@@ -20,6 +23,11 @@ async def lifespan(_app: FastAPI):
     await close_db()
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SECRET_KEY", "change-me"),
+    same_site="lax",
+)
 
 
 @app.exception_handler(AppError)

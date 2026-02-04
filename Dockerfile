@@ -9,6 +9,7 @@ COPY /pyproject.toml .
 COPY /uv.lock .
 COPY /backend ./backend
 COPY /frontend ./frontend
+COPY .env .
 
 RUN uv sync --locked
 

@@ -66,6 +66,84 @@ export async function logout() {
     }
 }
 
+export function setButtonLoading(button, text) {
+    if (!button) return;
+    button.disabled = true;
+    const spinner = button.querySelector(".spinner");
+    const btnText = button.querySelector(".btn-text");
+    if (btnText && text) btnText.textContent = text;
+    if (spinner) spinner.classList.remove("hide");
+}
+
+export function clearButtonLoading(button, text) {
+    if (!button) return;
+    button.disabled = false;
+    const spinner = button.querySelector(".spinner");
+    const btnText = button.querySelector(".btn-text");
+    if (btnText && text) btnText.textContent = text;
+    if (spinner) spinner.classList.add("hide");
+}
+
+export function initOtpInputs(root = document) {
+    const inputs = root.querySelectorAll(".otp-input");
+    if (!inputs.length) return;
+
+    inputs.forEach((input, index) => {
+        input.addEventListener("input", (e) => {
+            const isBackspace = e.inputType === "deleteContentBackward";
+            if (!/^[0-9]$/.test(e.data) && !isBackspace) {
+                input.value = "";
+                return;
+            }
+            if (e.data && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+        });
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace") {
+                if (input.value === "" && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            } else if (e.key === "ArrowLeft" && index > 0) {
+                inputs[index - 1].focus();
+            } else if (e.key === "ArrowRight" && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+        });
+
+        input.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const pasteData = e.clipboardData.getData("text").replace(/[^0-9]/g, "");
+            if (!pasteData) return;
+
+            const chars = pasteData.split("");
+            let currentIndex = index;
+            chars.forEach((char) => {
+                if (currentIndex < inputs.length) {
+                    inputs[currentIndex].value = char;
+                    currentIndex++;
+                }
+            });
+
+            if (currentIndex < inputs.length) {
+                inputs[currentIndex].focus();
+            } else {
+                inputs[inputs.length - 1].focus();
+            }
+        });
+    });
+}
+
+export function readOtp(root = document) {
+    const inputs = root.querySelectorAll(".otp-input");
+    let otp = "";
+    inputs.forEach((input) => {
+        otp += input.value;
+    });
+    return otp;
+}
+
 function warning_widget(message) {
     return `
     <div class="alert alert-warning">

@@ -1,7 +1,12 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr
+
+class AuthServiceProvider(str, Enum):
+    GOOGLE = "google"
+    ME = "me"
 
 
 class TodoSchema(BaseModel):
@@ -18,7 +23,8 @@ class UserSchema(BaseModel):
     firstName: str
     lastName: str
     email: EmailStr
-    passwordHash: str
+    passwordHash: Optional[str]
+    authServiceProvider: AuthServiceProvider
     avatar: str
     refreshToken: Optional[str]
     createdAt: datetime
@@ -29,4 +35,5 @@ class PendingUserSchema(BaseModel):
     firstName: str
     lastName: str
     email: EmailStr
-    passwordHash: str
+    passwordHash: Optional[str]
+    authServiceProvider: AuthServiceProvider

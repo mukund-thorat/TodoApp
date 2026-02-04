@@ -1,19 +1,16 @@
 import uuid
 
 from datetime import datetime, timedelta
-from fastapi import Depends, Response
-from jwt import ExpiredSignatureError, InvalidTokenError
+from fastapi import Response
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from backend.data.core import get_db
 from backend.routers.auth.repo_pend_user import fetch_pend_user, delete_pend_user, insert_pend_user
-from backend.data.schemas import UserSchema, PendingUserSchema
-from backend.routers.auth.repo_user import insert_user, fetch_user_by_email, fetch_user_by_refresh_token_and_user_id, \
-    set_refresh_token
+from backend.data.schemas import UserSchema, PendingUserSchema, AuthServiceProvider
+from backend.routers.auth.repo_user import insert_user, fetch_user_by_email, set_refresh_token
 from backend.routers.auth.models import UserCredentials, SignUpModel, Token
 from backend.utils.const import ACCESS_TOKEN_EXPIRE_MINUTES
 from backend.utils.errors import ValidationError, NotFoundError
-from backend.utils.security import get_password_hash, verify_password, decode_token, create_access_token, \
+from backend.utils.security import get_password_hash, verify_password, create_access_token, \
     create_refresh_token
 
 
@@ -39,17 +36,19 @@ async def create_user(pend_user_schema: PendingUserSchema, avatar: str, db: Asyn
         createdAt=datetime.now(),
         deletedAt=None,
         lastLogIn=None,
+        authServiceProvider=pend_user_schema.authServiceProvider
     )
 
     await insert_user(user_schema, db)
 
 
-async def store_pend_user(signup_data: SignUpModel, db: AsyncIOMotorDatabase):
+async def store_pend_user(signup_data: SignUpModel, auth_s_p: AuthServiceProvider, db: AsyncIOMotorDatabase):
     pend_schema = PendingUserSchema(
         firstName=signup_data.firstName,
         lastName=signup_data.lastName,
         email=signup_data.email,
-        passwordHash=get_password_hash(signup_data.password),
+        passwordHash=get_password_hash(signup_data.password) if signup_data.password else None,
+        authServiceProvider=auth_s_p
     )
 
     await insert_pend_user(pend_schema, db=db)
