@@ -1,5 +1,6 @@
 import os
 
+import certifi
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorClient
 
@@ -20,7 +21,7 @@ def _get_mongo_uri() -> str:
 
 
 def _get_db_name() -> str:
-    return os.getenv("MONGO_DB_NAME", "todoapp")
+    return os.getenv("MONGO_DB_NAME", "todobymukund")
 
 
 async def connect_to_db() -> None:
@@ -29,7 +30,11 @@ async def connect_to_db() -> None:
         return
 
     try:
-        _client = AsyncIOMotorClient(_get_mongo_uri())
+        _client = AsyncIOMotorClient(
+            _get_mongo_uri(),
+            tls=True,
+            tlsCAFile=certifi.where(),
+        )
         _db = _client.get_database(_get_db_name())
     except Exception as exc:
         sv_logger.error("Failed to connect to MongoDB")
