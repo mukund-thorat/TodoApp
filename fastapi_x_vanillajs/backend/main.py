@@ -23,9 +23,10 @@ async def lifespan(_app: FastAPI):
     await close_db()
 
 app = FastAPI(lifespan=lifespan)
+
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SECRET_KEY", "change-me"),
+    secret_key=os.getenv("SECRET_KEY", uuid.uuid4().hex),
     same_site="lax",
 )
 
