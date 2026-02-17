@@ -8,9 +8,9 @@ from routers.auth.pass_recovery.models import PassRecoveryOTPVerificationModel, 
 from routers.auth.pass_recovery.service import change_user_password_by_token, generate_recovery_token
 from routers.auth.repo_user import fetch_user_by_email
 from utils.const import RATE_LIMIT
-from utils.otp_manager import OTPManager, OTPPurpose
-from utils.rate_limiting import limiter
 from utils.response_model import ResponseModel, ResponseCode
+from utils.security.otp_manager import OTPManager, OTPPurpose
+from utils.security.rate_limiting import limiter
 
 router = APIRouter(prefix="/recovery", tags=["User Password Recovery"])
 
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/recovery", tags=["User Password Recovery"])
 @limiter.limit(f"{RATE_LIMIT}/minute")
 async def generate_otp(request: Request, email: EmailStr, db: AsyncSession = Depends(get_db)):
     await fetch_user_by_email(email=email, db=db)
-    OTPManager().send_otp(email, purpose=OTPPurpose.PASS_RECOVER)
+    await OTPManager().send_otp(email, purpose=OTPPurpose.PASS_RECOVER)
     return ResponseModel(code=ResponseCode.CREATED, message="Successfully sent OTP to the email")
 
 

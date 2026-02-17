@@ -9,8 +9,8 @@ from routers.auth.repo_user import insert_user, fetch_user_by_email, set_refresh
 from routers.auth.models import UserCredentials, SignUpModel, Token
 from utils.const import ACCESS_TOKEN_EXPIRE_MINUTES
 from utils.errors import ValidationError, NotFoundError
-from utils.security import get_password_hash, verify_password, create_access_token, \
-    create_refresh_token
+from utils.security.hashing import get_password_hash, verify_password
+from utils.security.tokens import create_access_token, create_refresh_token
 
 
 async def login_verification(email, avatar: str, db: AsyncSession):

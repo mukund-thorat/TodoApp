@@ -17,7 +17,7 @@ app = FastAPI()
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SECRET_KEY", uuid.uuid4().hex),
+    secret_key=os.getenv("SECRET_KEY"),
     same_site="lax",
 )
 

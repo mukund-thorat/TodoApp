@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from data.core import AsyncSessionLocal
 from data.schemas import User, AuthServiceProvider
-from utils.security import get_password_hash
+from utils.security.hashing import get_password_hash
 
 
 async def insert_user(user: User, db: AsyncSession):

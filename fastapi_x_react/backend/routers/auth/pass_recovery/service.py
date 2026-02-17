@@ -4,7 +4,8 @@ from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from routers.auth.repo_user import set_user_password
-from utils.security import create_access_token, get_current_user, get_password_hash
+from utils.security.hashing import get_password_hash
+from utils.security.tokens import create_access_token, get_current_user
 
 
 async def generate_recovery_token(email: EmailStr) -> str:

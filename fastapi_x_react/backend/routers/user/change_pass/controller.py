@@ -9,10 +9,11 @@ from routers.auth.repo_user import set_user_password
 from routers.auth.service import authenticate_user
 from routers.user.change_pass.models import PasswordChangeModel
 from utils.const import RATE_LIMIT
-from utils.otp_manager import OTPManager, OTPPurpose
-from utils.rate_limiting import limiter
 from utils.response_model import ResponseModel, ResponseCode
-from utils.security import get_current_user, get_password_hash
+from utils.security.hashing import get_password_hash
+from utils.security.otp_manager import OTPPurpose, OTPManager
+from utils.security.rate_limiting import limiter
+from utils.security.tokens import get_current_user
 
 router = APIRouter(prefix="/change_password", tags=["User Password Change"])
 
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/change_password", tags=["User Password Change"])
 @limiter.limit(f"{RATE_LIMIT}/minute")
 async def verify_password(request: Request, credentials: UserCredentials, _: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     await authenticate_user(credentials=credentials, db=db)
-    OTPManager().send_otp(email=credentials.email, purpose=OTPPurpose.PASS_CHANGE)
+    await OTPManager().send_otp(email=credentials.email, purpose=OTPPurpose.PASS_CHANGE)
     return ResponseModel(code=ResponseCode.CREATED, message="OTP sent to the email")
 
 

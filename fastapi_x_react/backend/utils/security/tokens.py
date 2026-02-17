@@ -4,7 +4,6 @@ from datetime import timedelta, datetime
 import jwt
 from fastapi import Depends, HTTPException, Cookie
 from fastapi.security import OAuth2PasswordBearer
-from passlib.context import CryptContext
 from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_401_UNAUTHORIZED
@@ -16,17 +15,7 @@ from utils.errors import NotFoundError, ValidationError
 from utils.pydantic_cm import UserModel
 from utils.sql_pydantic_parser import user_2_p
 
-bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
-
-def get_password_hash(password: str) -> str:
-    return bcrypt_context.hash(password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt_context.verify(plain_password, hashed_password)
-
 
 def create_access_token(email: EmailStr, user_id: str, delta_expires: timedelta):
     payload = {
@@ -37,9 +26,6 @@ def create_access_token(email: EmailStr, user_id: str, delta_expires: timedelta)
 
     return jwt.encode(payload, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
 
-def decode_token(token: str):
-    return jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
-
 def create_refresh_token(user_id: str):
     payload = {
         "userId": user_id,
@@ -48,6 +34,8 @@ def create_refresh_token(user_id: str):
 
     return jwt.encode(payload, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
 
+def decode_token(token: str):
+    return jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
 
 async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncSession = Depends(get_db)) -> UserModel:
     try:
@@ -60,7 +48,7 @@ async def get_current_user(token: str = Depends(oauth2_bearer), db: AsyncSession
 
         user = await fetch_user_by_email(email, db)
         if not user:
-            raise NotFoundError("User not found", details={"email": user.email})
+            raise NotFoundError("User not found", details={"userId": user_id})
 
         return user_2_p(user)
 
@@ -83,7 +71,7 @@ async def get_current_user_refresh_token(refresh_token: str = Cookie(None), db: 
 
         user = await fetch_user_by_refresh_token_and_user_id(user_id, refresh_token, db)
         if not user:
-            raise NotFoundError("User not found", details={"email": user.email})
+            raise NotFoundError("User not found", details={"userId": user_id})
 
         return user_2_p(user)
     except jwt.ExpiredSignatureError:

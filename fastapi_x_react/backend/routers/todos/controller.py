@@ -11,9 +11,9 @@ from routers.todos.service import add_new_todo
 from data.core import get_db
 from utils.const import RATE_LIMIT
 from utils.pydantic_cm import UserModel
-from utils.rate_limiting import limiter
 from utils.response_model import ResponseModel, ResponseCode
-from utils.security import get_current_user
+from utils.security.rate_limiting import limiter
+from utils.security.tokens import get_current_user
 from utils.sql_pydantic_parser import todo_2_p
 
 router = APIRouter(prefix="/todos", tags=["todos"])

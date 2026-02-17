@@ -14,13 +14,12 @@ from routers.auth.models import UserCredentials, SignUpModel, LoginOTPVerificati
 from routers.auth.service import authenticate_user, store_pend_user, login_verification, tokens_generator
 from utils.const import RATE_LIMIT
 from utils.errors import ValidationError
-from utils.otp_manager import OTPManager, OTPPurpose
-from utils.rate_limiting import limiter
 from utils.response_model import ResponseModel, ResponseCode
-from utils.security import get_current_user, get_current_user_refresh_token
 from routers.auth.pass_recovery.controller import router as pass_recovery_router
 from routers.auth.google.controller import router as google_router
-
+from utils.security.otp_manager import OTPPurpose, OTPManager
+from utils.security.rate_limiting import limiter
+from utils.security.tokens import get_current_user_refresh_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 router.include_router(pass_recovery_router)
@@ -64,7 +63,7 @@ async def register_user(request: Request, signup_data: SignUpModel, db: AsyncSes
 @router.post("/otp/request", status_code=HTTP_201_CREATED, response_model=ResponseModel)
 @limiter.limit(f"{RATE_LIMIT}/minute")
 async def otp_request(request: Request, email: EmailStr):
-    OTPManager().send_otp(email, purpose=OTPPurpose.LOGIN)
+    await OTPManager().send_otp(email, purpose=OTPPurpose.LOGIN)
     return ResponseModel(code=ResponseCode.CREATED, message="Successfully sent OTP to the email")
 
 

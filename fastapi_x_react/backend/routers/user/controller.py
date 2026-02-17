@@ -3,10 +3,10 @@ from starlette.status import HTTP_200_OK
 
 from data.schemas import User
 from utils.const import RATE_LIMIT
-from utils.rate_limiting import limiter
-from utils.security import get_current_user
 from routers.user.change_pass.controller import router as change_pass_router
 from routers.user.delete_account.controller import router as delete_account_router
+from utils.security.rate_limiting import limiter
+from utils.security.tokens import get_current_user
 
 router = APIRouter(prefix="/user", tags=["user"])
 router.include_router(change_pass_router)

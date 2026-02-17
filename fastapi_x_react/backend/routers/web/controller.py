@@ -7,7 +7,7 @@ from data.core import get_db
 from data.schemas import User
 from routers.todos.repo import fetch_active_todos
 from routers.web.service import render_or_redirect
-from utils.security import get_current_user_refresh_token
+from utils.security.tokens import get_current_user_refresh_token
 from utils.template import templates
 
 router = APIRouter()

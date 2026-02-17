@@ -9,10 +9,10 @@ from routers.auth.service import authenticate_user
 from routers.user.delete_account.models import OTPVerificationModel
 from routers.user.delete_account.service import remove_user
 from utils.const import RATE_LIMIT
-from utils.otp_manager import OTPManager, OTPPurpose
-from utils.rate_limiting import limiter
 from utils.response_model import ResponseModel, ResponseCode
-from utils.security import get_current_user
+from utils.security.otp_manager import OTPPurpose, OTPManager
+from utils.security.rate_limiting import limiter
+from utils.security.tokens import get_current_user
 
 router = APIRouter(prefix="/delete_account", tags=["user_delete_account"])
 
@@ -23,7 +23,7 @@ async def verify_password(request: Request, credentials: UserCredentials, _: Use
     print("before auth")
     await authenticate_user(credentials=credentials, db=db)
     print("after auth")
-    OTPManager().send_otp(email=credentials.email, purpose=OTPPurpose.DEL_ACC)
+    await OTPManager().send_otp(email=credentials.email, purpose=OTPPurpose.DEL_ACC)
     return ResponseModel(code=ResponseCode.CREATED, message="OTP sent to the email")
 
 @router.post("/otp/verify", status_code=HTTP_200_OK, response_model=ResponseModel)

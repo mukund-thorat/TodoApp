@@ -5,7 +5,7 @@ from starlette.responses import RedirectResponse
 
 from data.core import get_db
 from routers.auth.repo_user import fetch_user_by_refresh_token_and_user_id
-from utils.security import decode_token
+from utils.security.tokens import decode_token
 from utils.template import templates
 
 
