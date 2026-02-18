@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+.otp-input{
+    width: 70px;
+    height: 70px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background-color: #e2d7cf;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+}

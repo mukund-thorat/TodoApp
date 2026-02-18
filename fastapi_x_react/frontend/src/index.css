@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+@theme {
+    --breakpoint-*: initial;
+
+    --color-primary: #ECE4DF;
+    --color-secondary: #ECB893;
+    --color-tertiary: #CB824D;
+    --color-quaternary: #774522;
+}
+
+body {
+    background-color: var(--color-primary);
+    font-family: "Poppins", sans-serif;
+}
