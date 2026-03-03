@@ -40,7 +40,13 @@ async def store_pend_user(signup_data: SignUpModel, auth_s_p: AuthServiceProvide
 async def authenticate_user(credentials: UserCredentials, db: AsyncSession) -> User:
     user = await fetch_user_by_email(email=credentials.email, db=db)
 
-    if user is None or not verify_password(credentials.password, user.passwordHash):
+    if user is None:
+        raise NotFoundError("User not found", details={"email": credentials.email})
+
+    if user.passwordHash is None and credentials.password is "" and user.authServiceProvider == AuthServiceProvider.GOOGLE:
+        return user
+
+    if not verify_password(credentials.password, user.passwordHash):
         raise ValidationError("Invalid email or password")
     return user
 

@@ -20,7 +20,12 @@ router = APIRouter(prefix="/change_password", tags=["User Password Change"])
 
 @router.post("/verify_password", response_model=ResponseModel, status_code=HTTP_201_CREATED)
 @limiter.limit(f"{RATE_LIMIT}/minute")
-async def verify_password(request: Request, password: str = Body(...), user: UserModel = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def verify_password(
+    request: Request,
+    password: str = Body(..., embed=True),
+    user: UserModel = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     await authenticate_user(credentials=UserCredentials(email=user.email, password=password), db=db)
     await OTPManager().send_otp(email=user.email, purpose=OTPPurpose.PASS_CHANGE)
     return ResponseModel(code=ResponseCode.CREATED, message="OTP sent to the email")

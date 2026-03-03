@@ -1,13 +1,14 @@
 import {fetchWithAuth} from "./protected-request.ts";
 
-export async function passVerify(password: string | null){
-    const response = await fetchWithAuth("http://localhost:8000/user/change_password/verify_password", {
+export async function deleteUser(password: string){
+    const response = await fetchWithAuth("http://localhost:8000/user/delete_account/verify_password", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ password: password ? password : "" })
+        body: JSON.stringify({ password })
     })
+
 
     if (!response.ok) {
         throw new Error("Registration failed");
@@ -15,17 +16,15 @@ export async function passVerify(password: string | null){
     return await response.json();
 }
 
-export async function otpVerify(otp: string, newPassword: string){
-    const response = await fetchWithAuth("http://localhost:8000/user/change_password/otp/verify", {
+export async function verifyOTP(otp: string){
+    const response = await fetchWithAuth("http://localhost:8000/user/delete_account/otp/verify", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-            otp: otp,
-            newPassword: newPassword
-        })
+        body: JSON.stringify({ otp })
     })
+
 
     if (!response.ok) {
         throw new Error("Registration failed");

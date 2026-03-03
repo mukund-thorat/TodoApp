@@ -52,7 +52,9 @@ function ProfileAvatar({name}: ProfileAvatarProps) {
                                 }}
                                 className="whitespace-nowrap p-3 bg-[#D9C9BF] rounded-md w-full cursor-pointer font-medium">Logout</button>
                         </div>
-                        <button className="whitespace-nowrap p-3 bg-[#D98C8C] text-[#9E2E2E] rounded-md w-full cursor-pointer font-medium">Delete account</button>
+                        <button
+                            onClick={() => window.location.href = "/delete_user"}
+                            className="whitespace-nowrap p-3 bg-[#D98C8C] text-[#9E2E2E] rounded-md w-full cursor-pointer font-medium">Delete account</button>
                     </section>
                 )
             }

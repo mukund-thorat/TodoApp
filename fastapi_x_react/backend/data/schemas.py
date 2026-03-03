@@ -25,7 +25,11 @@ class Todo(Base):
     dueDate:            Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     createdAt:          Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
-    userId:             Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    userId:             Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False
+    )
     user:               Mapped["User"] = relationship(back_populates="todos")
 
 class User(Base):
@@ -43,7 +47,11 @@ class User(Base):
     deletedAt:          Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     lastLogIn:          Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    todos: Mapped[list["Todo"]] = relationship(back_populates="user",cascade="all, delete-orphan")
+    todos: Mapped[list["Todo"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
 
 class PendingUser(Base):
     __tablename__ = "pending_users"
