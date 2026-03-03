@@ -23,7 +23,7 @@ form.addEventListener("submit", async (e) => {
     const newPassword = form['password'].value;
     const confirmPassword = form['confirm-password'].value;
 
-    if (newPassword!== confirmPassword) {
+    if (newPassword !== confirmPassword) {
         alert("Passwords do not match!");
         return;
     }

@@ -88,6 +88,7 @@ function EditableTodo({ id, title, dueDate, checked, priority, refetch, cancelCa
                         const todo = todoObject.parse(rawTodo);
                         await mutateAsync(todo)
                         refetch()
+                        cancelCallback()
                     }}
                     className="w-25" size="s">Edit</Button>
             </div>
@@ -116,7 +117,7 @@ export default function Todo({ id, title, checked, dueDate, refetch, priority = 
     ) : (
         <div className="group flex justify-between items-center gap-6 border-b border-quaternary px-4 py-6 w-150">
             <div className="flex items-center gap-6">
-                <TodoRadioButton mark={checked} priority={priority} todoId={id} />
+                <TodoRadioButton refetch={refetch} mark={!checked} priority={priority} todoId={id} />
                 <div className="flex flex-col gap-2 items-start">
                     <h2 className="text-xl font-semibold">{title}</h2>
                     <div className="flex items-center gap-2 text-[#404040]">

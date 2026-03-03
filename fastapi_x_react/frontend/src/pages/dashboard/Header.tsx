@@ -12,7 +12,7 @@ function Header(){
                     <h3 className="text-2xl">Hello,</h3>
                     <h2 className="text-3xl font-medium">{user?.firstName ?? "User"}</h2>
                 </div>
-                <ProfileAvatar name={user?.avatar ?? "mrbean"} />
+                <ProfileAvatar name={user?.avatar ?? "cat"} />
             </div>
         </div>
     )

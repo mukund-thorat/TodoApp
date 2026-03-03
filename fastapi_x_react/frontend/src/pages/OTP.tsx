@@ -96,7 +96,6 @@ function OTPPage(){
                 <p className="text-center">{otpMsg}</p>
                 <form className="flex flex-col gap-8 items-center" onSubmit={(e) => handleSubmit(e)}>
                     <OTPInput otpCallback={(fullOtp) => {
-                        console.log(fullOtp);
                         otp.current = fullOtp
                     }} />
                     <Button

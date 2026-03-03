@@ -30,18 +30,6 @@ export async function setTodoStatus(todoId: string, status: boolean){
     return await response.json();
 }
 
-export async function setTodoTitle(todoId: string, title: string){
-    const response = await fetchWithAuth(`http://localhost:8000/todos/update_title/${todoId}?updated_title=${encodeURIComponent(title)}`, {
-        method: "PUT",
-    })
-
-    if (!response.ok) {
-        throw new Error(response.statusText);
-    }
-
-    return await response.json();
-}
-
 export async function setTodo(todo: todoModel){
     const response = await fetchWithAuth("http://localhost:8000/todos/bulk_update", {
         method: "PUT",

@@ -7,6 +7,7 @@ type Priority = 1 | 2 | 3 | 4;
 interface TodoRadioProps {
     todoId: string;
     priority: Priority;
+    refetch: () => void;
     name?: string;
     mark?: boolean;
 }
@@ -19,11 +20,12 @@ interface SetTodoStatusVariables {
 function TodoRadioButton({
     todoId,
     priority,
+    refetch,
     mark = false,
     name,
 }: TodoRadioProps) {
-    const {mutate} = useMutation({
-        mutationFn: async ({todoId, status}: SetTodoStatusVariables) => await setTodoStatus(todoId, status),
+        const {mutateAsync} = useMutation({
+        mutationFn: async ({todoId, status}: SetTodoStatusVariables) => await setTodoStatus(todoId, !status),
     });
     const [checked, setCheck] = useState<boolean>(mark);
 
@@ -54,9 +56,9 @@ function TodoRadioButton({
                 type="checkbox"
                 name={name}
                 disabled={checked}
-                onChange={(e) => {
-                    mutate({todoId, status: e.target.checked});
-                    setCheck(e.target.checked);
+                onChange={async (e) => {
+                    await mutateAsync({todoId, status: e.target.checked});
+                    refetch()
                 }}
                 checked={checked}
             />
