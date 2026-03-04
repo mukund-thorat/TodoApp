@@ -1,5 +1,5 @@
 import TodoRadioButton from "./RadioButton.tsx";
-import {useMutation} from "@tanstack/react-query";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {remTodo, setTodo} from "../api/active-todos.ts";
 import {useState} from "react";
 import Button from "./Button.tsx";
@@ -13,7 +13,6 @@ interface TodoProps {
     checked: boolean;
     dueDate: Date;
     priority: Priority;
-    refetch: () => void;
 }
 
 interface EditTodoProps {
@@ -23,7 +22,6 @@ interface EditTodoProps {
     priority: Priority;
     checked: boolean;
     cancelCallback: () => void;
-    refetch: () => void;
 }
 
 function toInputDate(date: Date) {
@@ -33,7 +31,9 @@ function toInputDate(date: Date) {
     return `${year}-${month}-${day}`;
 }
 
-function EditableTodo({ id, title, dueDate, checked, priority, refetch, cancelCallback }: EditTodoProps) {
+function EditableTodo({ id, title, dueDate, checked, priority, cancelCallback }: EditTodoProps) {
+    const queryClient = useQueryClient()
+
     const [input, setInput] = useState<string>(title);
     const [dueDateInput, setDueDateInput] = useState<string>(() => toInputDate(dueDate));
     const [priorityInput, setPriorityInput] = useState<Priority>(priority);
@@ -87,7 +87,7 @@ function EditableTodo({ id, title, dueDate, checked, priority, refetch, cancelCa
                         }
                         const todo = todoObject.parse(rawTodo);
                         await mutateAsync(todo)
-                        refetch()
+                        await queryClient.invalidateQueries({queryKey: ['']})
                         cancelCallback()
                     }}
                     className="w-25" size="s">Edit</Button>
@@ -96,13 +96,15 @@ function EditableTodo({ id, title, dueDate, checked, priority, refetch, cancelCa
     );
 }
 
-export default function Todo({ id, title, checked, dueDate, refetch, priority = 4 }: TodoProps){
+export default function Todo({ id, title, checked, dueDate, priority = 4 }: TodoProps){
     const remMutation = useMutation({
         mutationFn: async (todoId: string) => remTodo(todoId),
     });
 
     const [editable, setEditable] = useState<boolean>(false);
     const formattedDueDate = dueDate.toLocaleDateString();
+
+    const queryClient = useQueryClient()
 
     return editable ? (
         <EditableTodo
@@ -111,13 +113,12 @@ export default function Todo({ id, title, checked, dueDate, refetch, priority = 
             priority={priority}
             checked={checked}
             dueDate={dueDate}
-            refetch={refetch}
             cancelCallback={() => setEditable(false)}
         />
     ) : (
         <div className="group flex justify-between items-center gap-6 border-b border-quaternary px-4 py-6 w-150">
             <div className="flex items-center gap-6">
-                <TodoRadioButton refetch={refetch} mark={!checked} priority={priority} todoId={id} />
+                <TodoRadioButton refetch={async () => await queryClient.invalidateQueries({queryKey: ['todos']})} mark={!checked} priority={priority} todoId={id} />
                 <div className="flex flex-col gap-2 items-start">
                     <h2 className="text-xl font-semibold">{title}</h2>
                     <div className="flex items-center gap-2 text-[#404040]">
@@ -135,7 +136,7 @@ export default function Todo({ id, title, checked, dueDate, refetch, priority = 
                 <img
                     onClick={async () => {
                         await remMutation.mutateAsync(id);
-                        refetch();
+                        await queryClient.invalidateQueries({queryKey: ['todos']})
                     }}
                     className="p-2 hover:bg-secondary rounded-lg" src="src/assets/images/trash.svg" alt="remove"/>
             </div>

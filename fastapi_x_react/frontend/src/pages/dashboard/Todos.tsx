@@ -45,7 +45,6 @@ function Todos(){
                         priority={Math.min(4, Math.max(1, Math.round(todo.priority))) as 1 | 2 | 3 | 4}
                         dueDate={todo.dueDate}
                         title={todo.title}
-                        refetch={refetch}
                     />
                 ))}
             </div>

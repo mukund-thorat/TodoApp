@@ -1,12 +1,9 @@
-import ShadowBox from "../../../components/ShadowBox.tsx";
-import Button from "../../../components/Button.tsx";
 import {useMutation} from "@tanstack/react-query";
 import {otpVerify} from "../../../api/pass-recovery.ts";
-import {type SubmitEvent, useRef} from "react";
-import OTPInput from "../../../components/OTPInput.tsx";
 import {useAppSelector} from "../../../store/hooks.ts";
-import ProtectedRoute from "../../../components/ProtectedRoute.tsx";
+import ProtectedRoute from "../../../hooks/ProtectedRoute.tsx";
 import {Navigate, useLocation, useNavigate} from "react-router-dom";
+import OtpVerificationCard from "../../../components/OtpVerificationCard.tsx";
 
 interface VerifyOtpParams {
     otp: string,
@@ -33,13 +30,6 @@ export default function VerifyOtp() {
     })
 
     const otpMsg = user?.email ? `Sending OTP to ${user.email}` : "Sending OTP...";
-    const otp = useRef<string | null>(null)
-
-    const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (!otp.current) return
-        await otpVerifyMutation.mutateAsync({otp: otp.current, newPassword})
-    }
 
     if (!newPassword) {
         return <Navigate to="/change_password" replace />;
@@ -47,20 +37,12 @@ export default function VerifyOtp() {
 
     return (
         <ProtectedRoute>
-            <div className="flex items-center justify-center h-screen">
-                <ShadowBox title="Verify OTP">
-                    <p className="text-center">{otpMsg}</p>
-                    <form className="flex flex-col gap-8 items-center" onSubmit={(e) => handleSubmit(e)}>
-                        <OTPInput otpCallback={(fullOtp) => {
-                            otp.current = fullOtp
-                        }} />
-                        <Button
-                            type="submit"
-                            children="Verify OTP"
-                        />
-                    </form>
-                </ShadowBox>
-            </div>
+            <OtpVerificationCard
+                message={otpMsg}
+                onVerify={async (otp: string) => {
+                    await otpVerifyMutation.mutateAsync({otp, newPassword});
+                }}
+            />
         </ProtectedRoute>
     );
 }

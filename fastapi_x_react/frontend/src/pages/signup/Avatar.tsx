@@ -1,10 +1,13 @@
-import ShadowBox from "../components/ShadowBox.tsx";
-import Avatar from "../components/Avatar.tsx";
-import Button from "../components/Button.tsx";
+import ShadowBox from "../../components/ShadowBox.tsx";
+import Avatar from "../../components/Avatar.tsx";
+import Button from "../../components/Button.tsx";
 import {useEffect, useState} from "react";
+import {useNavigate} from "react-router-dom";
 
 
 function AvatarPage(){
+    const navigate = useNavigate();
+
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const emailFromQuery = params.get("email");
@@ -25,6 +28,7 @@ function AvatarPage(){
                         avatars.map((avatar) => {
                             return (
                                 <Avatar
+                                    key={avatar}
                                     selected={selected}
                                     name={avatar}
                                     onClick={() => {
@@ -41,7 +45,7 @@ function AvatarPage(){
                     onClick={() => {
                         if (selected != null) {
                             sessionStorage.setItem("picked_avatar", selected)
-                            window.location.href = "/verify_otp"
+                            navigate("/verify_otp")
                         }
                     }}
                 />

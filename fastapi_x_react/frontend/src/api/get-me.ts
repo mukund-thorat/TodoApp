@@ -1,8 +1,9 @@
 import {refreshAccessToken} from "./refresh-token.ts";
 import {userObject, type userModel} from "../entities/user.ts";
+import {apiUrl} from "./config.ts";
 
 export async function fetchMe(token: string) {
-    return fetch("http://localhost:8000/auth/me", {
+    return fetch(apiUrl("/auth/me"), {
         method: "GET",
         headers: {
             Authorization: `Bearer ${token}`

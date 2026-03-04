@@ -1,5 +1,7 @@
+import {apiUrl} from "./config.ts";
+
 export async function logoutUser(){
-    const response = await fetch("http://localhost:8000/auth/logout", {
+    const response = await fetch(apiUrl("/auth/logout"), {
         method: "GET",
         credentials: "include"
     })

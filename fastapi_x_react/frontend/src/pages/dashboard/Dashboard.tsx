@@ -1,4 +1,4 @@
-import ProtectedRoute from "../../components/ProtectedRoute.tsx";
+import ProtectedRoute from "../../hooks/ProtectedRoute.tsx";
 import Header from "./Header.tsx";
 import Todos from "./Todos.tsx";
 

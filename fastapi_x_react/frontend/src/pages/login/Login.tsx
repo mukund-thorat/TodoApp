@@ -3,22 +3,16 @@ import TextInput from "../../components/TextInput.tsx";
 import GAuthButton from "../../components/GAuthButton.tsx";
 import Button from "../../components/Button.tsx";
 import Divider from "../../components/Divider.tsx";
-import {useState, type SubmitEvent, useEffect} from "react";
+import {useState, type SubmitEvent} from "react";
 import {type LoginFormData, loginSchema} from "../../entities/user.ts";
 import {useMutation} from "@tanstack/react-query";
 import {loginUser} from "../../api/login-user.ts";
-import {getMe} from "../../api/get-me.ts";
-import {useNavigate} from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
+import {RequireGuest} from "../../hooks/RequireGuest.tsx";
+
 
 function LoginPage(){
     const navigate = useNavigate();
-
-    const redirectMutation = useMutation({
-        mutationFn: getMe,
-        onSuccess: () => {
-            navigate("/dashboard");
-        }
-    })
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -31,8 +25,8 @@ function LoginPage(){
         mutationFn: async (data: LoginFormData) => loginUser(data),
         onSuccess: (data) => {
             localStorage.setItem("access_token", data["access_token"]);
-            window.location.href = "/dashboard";
-        }
+            navigate("/dashboard")
+        },
     });
 
     const handleChange = (field: keyof LoginFormData, value: string) => {
@@ -61,40 +55,38 @@ function LoginPage(){
         mutate(result.data)
     }
 
-    useEffect(() => {
-        redirectMutation.mutate();
-    }, [])
-
     return (
-        <div className="flex items-center justify-center h-screen">
-            <ShadowBox title="Login">
-                <form onSubmit={(e) => handleSubmit(e)} className="w-full flex flex-col gap-5">
+        <RequireGuest>
+            <div className="flex items-center justify-center h-screen">
+                <ShadowBox title="Login">
+                    <form onSubmit={(e) => handleSubmit(e)} className="w-full flex flex-col gap-5">
+                        <div className="w-full flex flex-col gap-3">
+                            <TextInput
+                                id="email"
+                                label="Email"
+                                placeholder="Enter your email"
+                                error={errors.email}
+                                onChange={(e) => handleChange("email", e.target.value)}
+                            />
+                            <TextInput
+                                id="password"
+                                type="password"
+                                label="Password"
+                                placeholder="Enter your password"
+                                error={errors.password}
+                                onChange={(e) => handleChange("password", e.target.value)}
+                            />
+                        </div>
+                        <Link to="/login/forget_password" className="cursor-pointer w-full text-end text-quaternary font-medium">forget password</Link>
+                        <Button className="w-full" children="Proceed" />
+                    </form>
                     <div className="w-full flex flex-col gap-3">
-                        <TextInput
-                            id="email"
-                            label="Email"
-                            placeholder="Enter your email"
-                            error={errors.email}
-                            onChange={(e) => handleChange("email", e.target.value)}
-                        />
-                        <TextInput
-                            id="password"
-                            type="password"
-                            label="Password"
-                            placeholder="Enter your password"
-                            error={errors.password}
-                            onChange={(e) => handleChange("password", e.target.value)}
-                        />
+                        <Divider label="or login with"/>
+                        <GAuthButton/>
                     </div>
-                    <a href="/login/forget_password" className="cursor-pointer w-full text-end text-quaternary font-medium">forget password</a>
-                    <Button className="w-full" children="Proceed" />
-                </form>
-                <div className="w-full flex flex-col gap-3">
-                    <Divider label="or login with"/>
-                    <GAuthButton/>
-                </div>
-            </ShadowBox>
-        </div>
+                </ShadowBox>
+            </div>
+        </RequireGuest>
     )
 }
 

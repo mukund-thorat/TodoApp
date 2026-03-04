@@ -1,5 +1,5 @@
 import '../assets/css/otp.css'
-import {useRef, useState} from "react";
+import {type ClipboardEvent, useRef, useState} from "react";
 
 function OTPInput({otpCallback} : {otpCallback: (otp: string) => void}) {
     const [otp, setOTP] = useState<string[]>(Array(6).fill(""));
@@ -20,11 +20,39 @@ function OTPInput({otpCallback} : {otpCallback: (otp: string) => void}) {
         }
     }
 
+    const handlePaste = (
+        e: ClipboardEvent<HTMLInputElement>,
+        index: number
+    ) => {
+        e.preventDefault();
+        const pastedText = e.clipboardData.getData("text");
+        const digits = pastedText.replace(/\D/g, "").slice(0, 6 - index).split("");
+
+        if (digits.length === 0) {
+            return;
+        }
+
+        const newOtp = [...otp];
+        digits.forEach((digit, i) => {
+            newOtp[index + i] = digit;
+        });
+
+        setOTP(newOtp);
+
+        const nextIndex = Math.min(index + digits.length, 5);
+        inputsRef.current[nextIndex]?.focus();
+
+        if (newOtp.every((digit) => digit !== "")) {
+            otpCallback(newOtp.join(""));
+        }
+    };
+
     return (
         <div className="flex items-center gap-2">
             {
                 otp.map((digit, index) => (
                     <input
+                        key={index}
                         type="text"
                         maxLength={1}
                         value={digit}
@@ -35,6 +63,7 @@ function OTPInput({otpCallback} : {otpCallback: (otp: string) => void}) {
                         pattern="[0-9]"
                         inputMode="numeric"
                         onChange={(e) => handleChange(e.target.value, index)}
+                        onPaste={(e) => handlePaste(e, index)}
                         required
                     />
                 ))

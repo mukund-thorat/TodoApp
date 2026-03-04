@@ -1,7 +1,8 @@
 import {fetchWithAuth} from "./protected-request.ts";
+import {apiUrl} from "./config.ts";
 
 export async function passVerify(password: string | null){
-    const response = await fetchWithAuth("http://localhost:8000/user/change_password/verify_password", {
+    const response = await fetchWithAuth(apiUrl("/user/change_password/verify_password"), {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -16,7 +17,7 @@ export async function passVerify(password: string | null){
 }
 
 export async function otpVerify(otp: string, newPassword: string){
-    const response = await fetchWithAuth("http://localhost:8000/user/change_password/otp/verify", {
+    const response = await fetchWithAuth(apiUrl("/user/change_password/otp/verify"), {
         method: "POST",
         headers: {
             "Content-Type": "application/json"

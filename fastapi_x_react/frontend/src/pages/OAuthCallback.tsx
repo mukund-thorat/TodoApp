@@ -4,19 +4,19 @@ import {useMutation} from "@tanstack/react-query";
 import {tokenLogin} from "../api/token_login.ts";
 
 export default function OAuthCallback(){
+    const navigate = useNavigate();
+
     const {mutate} = useMutation({
         mutationFn: tokenLogin,
         onSuccess: data => {
             console.log(data);
             localStorage.setItem("access_token", data.access_token)
-            window.location.href = "/dashboard"
+            navigate("/dashboard")
         },
         onError: error => {
             alert(error)
         }
     })
-
-    const navigate = useNavigate();
 
     useEffect(() => {
         const hash = window.location.hash.replace("#", "");

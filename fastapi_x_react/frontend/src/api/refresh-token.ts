@@ -1,14 +1,15 @@
 import type {tokenModel} from "../entities/token.ts";
+import {apiUrl} from "./config.ts";
 
 export async function refreshAccessToken(): Promise<string> {
-    const response = await fetch("http://localhost:8000/auth/refresh", {
+    const response = await fetch(apiUrl("/auth/refresh"), {
         method: "GET",
         credentials: "include",
     });
 
     if (!response.ok) {
         localStorage.removeItem("access_token");
-        window.location.href = "/login";
+        throw new Error("Unable to refresh access token");
     }
 
     const data: tokenModel = await response.json();
