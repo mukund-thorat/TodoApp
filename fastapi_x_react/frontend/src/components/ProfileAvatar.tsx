@@ -1,12 +1,15 @@
 import {useEffect, useRef, useState} from "react";
 import {useMutation} from "@tanstack/react-query";
 import {logoutUser} from "../api/logout-user.ts";
+import {useNavigate} from "react-router-dom";
 
 interface ProfileAvatarProps {
     name: string;
 }
 
 function ProfileAvatar({name}: ProfileAvatarProps) {
+    const navigate = useNavigate();
+
     const logoutMutation = useMutation({
         mutationFn: logoutUser,
     })
@@ -42,18 +45,18 @@ function ProfileAvatar({name}: ProfileAvatarProps) {
                     <section className="absolute top-1/2 right-1/2 flex flex-col items-center gap-2 bg-[#ECE4DF] p-2 border-2 border-quaternary rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,0.45)]">
                         <div className="flex flex-col items-center gap-2">
                             <button
-                                onClick={() => window.location.href = "/change_password"}
+                                onClick={() => navigate("/change_password")}
                                 className="whitespace-nowrap p-3 bg-[#D9C9BF] rounded-md w-full cursor-pointer font-medium">Change password</button>
                             <button
                                 onClick={async () => {
                                     await logoutMutation.mutateAsync()
                                     localStorage.removeItem("access_token")
-                                    window.location.href = "/login"
+                                    navigate("/login")
                                 }}
                                 className="whitespace-nowrap p-3 bg-[#D9C9BF] rounded-md w-full cursor-pointer font-medium">Logout</button>
                         </div>
                         <button
-                            onClick={() => window.location.href = "/delete_user"}
+                            onClick={() => navigate("/delete_user")}
                             className="whitespace-nowrap p-3 bg-[#D98C8C] text-[#9E2E2E] rounded-md w-full cursor-pointer font-medium">Delete account</button>
                     </section>
                 )

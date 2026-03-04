@@ -1,7 +1,8 @@
 import {fetchWithAuth} from "./protected-request.ts";
+import {apiUrl} from "./config.ts";
 
 export async function deleteUser(password: string){
-    const response = await fetchWithAuth("http://localhost:8000/user/delete_account/verify_password", {
+    const response = await fetchWithAuth(apiUrl("/user/delete_account/verify_password"), {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -17,7 +18,7 @@ export async function deleteUser(password: string){
 }
 
 export async function verifyOTP(otp: string){
-    const response = await fetchWithAuth("http://localhost:8000/user/delete_account/otp/verify", {
+    const response = await fetchWithAuth(apiUrl("/user/delete_account/otp/verify"), {
         method: "POST",
         headers: {
             "Content-Type": "application/json"

@@ -1,9 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import WelcomePage from "./pages/Welcome.tsx";
-import SignUpPage from "./pages/SignUp.tsx";
+import SignUpPage from "./pages/signup/SignUp.tsx";
 import LoginPage from "./pages/login/Login.tsx";
-import Avatar from "./pages/Avatar.tsx";
-import RegisterOTPPage from "./pages/OTP.tsx";
+import Avatar from "./pages/signup/Avatar.tsx";
+import RegisterOTPPage from "./pages/signup/OTP.tsx";
 import ForgetPassOTPPage from "./pages/login/OTP.tsx";
 import DashboardPage from "./pages/dashboard/Dashboard.tsx";
 import OAuthCallback from "./pages/OAuthCallback.tsx";

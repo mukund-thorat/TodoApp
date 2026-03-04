@@ -1,17 +1,20 @@
-import ProtectedRoute from "../../../components/ProtectedRoute.tsx";
+import ProtectedRoute from "../../../hooks/ProtectedRoute.tsx";
 import ShadowBox from "../../../components/ShadowBox.tsx";
 import TextInput from "../../../components/TextInput.tsx";
 import Button from "../../../components/Button.tsx";
 import {useState} from "react";
 import {useMutation} from "@tanstack/react-query";
 import {deleteUser} from "../../../api/delete-user.ts";
+import {useNavigate} from "react-router-dom";
 
 export default function DeleteUserPage(){
+    const navigate = useNavigate();
+
     const deleteMutation = useMutation({
         mutationFn: async (password: string) => deleteUser(password),
         onSuccess: () => {
             console.log("Successfully deleted user");
-            window.location.href = "/delete_user/verify_otp";
+            navigate("/delete_user/verify_otp")
         }
     })
 

@@ -1,8 +1,9 @@
 import {fetchWithAuth} from "./protected-request.ts";
 import {type authProviderModel, authProviderObject} from "../entities/auth-service-provider.ts";
+import {apiUrl} from "./config.ts";
 
 export async function getAuthProvider(): Promise<authProviderModel> {
-    const response = await fetchWithAuth("http://localhost:8000/user/authProvider", {
+    const response = await fetchWithAuth(apiUrl("/user/authProvider"), {
         method: "GET",
         headers: {
             "Content-Type": "application/json",

@@ -4,7 +4,7 @@ import Button from "../../../components/Button.tsx";
 import {useMutation} from "@tanstack/react-query";
 import {passVerify} from "../../../api/pass-recovery.ts";
 import {useEffect, useState} from "react";
-import ProtectedRoute from "../../../components/ProtectedRoute.tsx";
+import ProtectedRoute from "../../../hooks/ProtectedRoute.tsx";
 import {useNavigate} from "react-router-dom";
 import {getAuthProvider} from "../../../api/get-auth-provider.ts";
 import type {authProviderModel} from "../../../entities/auth-service-provider.ts";
