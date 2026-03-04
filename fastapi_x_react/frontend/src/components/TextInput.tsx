@@ -2,7 +2,7 @@ import type { InputHTMLAttributes } from "react";
 
 interface TextInputProps extends  InputHTMLAttributes<HTMLInputElement> {
     label?: string;
-    type?: "password" | "text";
+    type?: "password" | "text" | "email";
     error?: string;
 }
 

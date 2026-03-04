@@ -6,10 +6,25 @@ import GAuthButton from "../components/GAuthButton.tsx";
 import {useMutation} from "@tanstack/react-query";
 import {type RegisterFormData, registerSchema} from "../entities/user.ts";
 import {registerUser} from "../api/register-user.ts";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import * as React from "react";
+import {useNavigate} from "react-router-dom";
+import {getMe} from "../api/get-me.ts";
 
 function SignUpPage() {
+    const navigate = useNavigate();
+
+    const redirectMutation = useMutation({
+        mutationFn: getMe,
+        onSuccess: () => {
+            navigate("/dashboard");
+        }
+    })
+
+    useEffect(() => {
+        redirectMutation.mutate();
+    }, [])
+
     const [formData, setFormData] = useState<RegisterFormData>({
         firstName: "",
         lastName: "",

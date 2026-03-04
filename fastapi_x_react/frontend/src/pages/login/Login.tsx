@@ -1,14 +1,25 @@
-import ShadowBox from "../components/ShadowBox.tsx";
-import TextInput from "../components/TextInput.tsx";
-import GAuthButton from "../components/GAuthButton.tsx";
-import Button from "../components/Button.tsx";
-import Divider from "../components/Divider.tsx";
-import {useState, type SubmitEvent} from "react";
-import {type LoginFormData, loginSchema} from "../entities/user.ts";
+import ShadowBox from "../../components/ShadowBox.tsx";
+import TextInput from "../../components/TextInput.tsx";
+import GAuthButton from "../../components/GAuthButton.tsx";
+import Button from "../../components/Button.tsx";
+import Divider from "../../components/Divider.tsx";
+import {useState, type SubmitEvent, useEffect} from "react";
+import {type LoginFormData, loginSchema} from "../../entities/user.ts";
 import {useMutation} from "@tanstack/react-query";
-import {loginUser} from "../api/login-user.ts";
+import {loginUser} from "../../api/login-user.ts";
+import {getMe} from "../../api/get-me.ts";
+import {useNavigate} from "react-router-dom";
 
 function LoginPage(){
+    const navigate = useNavigate();
+
+    const redirectMutation = useMutation({
+        mutationFn: getMe,
+        onSuccess: () => {
+            navigate("/dashboard");
+        }
+    })
+
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const [formData, setFormData] = useState<LoginFormData>({
@@ -50,10 +61,14 @@ function LoginPage(){
         mutate(result.data)
     }
 
+    useEffect(() => {
+        redirectMutation.mutate();
+    }, [])
+
     return (
         <div className="flex items-center justify-center h-screen">
             <ShadowBox title="Login">
-                <form onSubmit={(e) => handleSubmit(e)} className="w-full flex flex-col gap-10">
+                <form onSubmit={(e) => handleSubmit(e)} className="w-full flex flex-col gap-5">
                     <div className="w-full flex flex-col gap-3">
                         <TextInput
                             id="email"
@@ -71,6 +86,7 @@ function LoginPage(){
                             onChange={(e) => handleChange("password", e.target.value)}
                         />
                     </div>
+                    <a href="/login/forget_password" className="cursor-pointer w-full text-end text-quaternary font-medium">forget password</a>
                     <Button className="w-full" children="Proceed" />
                 </form>
                 <div className="w-full flex flex-col gap-3">
